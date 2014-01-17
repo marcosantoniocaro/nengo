@@ -187,6 +187,53 @@ def test_neurons_to_neurons(Simulator, nl_nodirect):
     assert np.allclose(sim.data(b_p)[-10:], 0, atol=.1, rtol=.01)
 
 
+def test_weights(Simulator, nl_nodirect):
+    name = 'test_weights'
+    n1, n2 = 100, 50
+
+    def func(t):
+        return np.array([np.sin(4 * t), np.cos(12 * t)])
+
+    transform = np.array([[0.6, -0.4]])
+
+    m = nengo.Model(name, seed=3902)
+    u = nengo.Node(output=func)
+    a = nengo.Ensemble(nl_nodirect(n1), dimensions=2, radius=1.5)
+    b = nengo.Ensemble(nl_nodirect(n2), dimensions=1)
+
+    nengo.Connection(u, a)
+    nengo.Connection(a, b, transform=transform,
+                     weight_solver=nengo.decoders.lstsq_L2nz)
+                     # weight_solver=nengo.decoders.lstsq_lasso)
+
+    up = nengo.Probe(u)
+    ap = nengo.Probe(a, filter=0.03)
+    bp = nengo.Probe(b, filter=0.03)
+
+    sim = Simulator(m)
+    sim.run(2.)
+    t = sim.trange()
+    x = func(t).T
+    y = np.dot(x, transform.T)
+
+    atol = 0.1
+    rtol = 0.01
+    start = 100
+    delay = 40
+
+    with Plotter(Simulator, nl_nodirect) as plt:
+        plt.plot(t, sim.data(bp), label='B')
+        plt.plot(t, y, 'k:', label='y')
+        bound = atol + rtol * np.abs(y)
+        plt.plot(t[start + delay:], (y + bound)[start:-delay], 'k--')
+        plt.plot(t[start + delay:], (y - bound)[start:-delay], 'k--')
+        plt.savefig('test_connection.' + name + '.pdf')
+        plt.close()
+
+    assert np.allclose(sim.data(bp)[start + delay:], y[start:-delay],
+                       atol=atol, rtol=rtol)
+
+
 def test_dimensionality_errors(nl_nodirect):
     nengo.Model("test_dimensionality_error", seed=0)
     N = 10
