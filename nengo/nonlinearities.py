@@ -5,6 +5,7 @@ import numpy as np
 
 import nengo.decoders
 from nengo.objects import Neurons
+import nengo.params
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,8 @@ class Direct(Neurons):
 
 
 class _LIFBase(Neurons):
+    tau_rc = nengo.params.Parameter(0.02, "RC time constant")
+    tau_ref = nengo.params.Parameter(0.002, "Refractory time period")
 
     def __init__(self, n_neurons, tau_rc=0.02, tau_ref=0.002, label=None):
         self.tau_rc = tau_rc
