@@ -38,6 +38,53 @@ class PythonFunction(object):
         return 2 if self.n_in > 0 else 1
 
 
+class Neurons(nengo.params.Parameterized):
+    n_neurons = nengo.params.Parameter(None, "Number of neurons")
+    bias = nengo.params.Parameter(None, "Bias current")
+    gain = nengo.params.Parameter(None, "Gain on input current")
+
+    def __init__(self, n_neurons, bias=None, gain=None, label=None):
+        self.n_neurons = n_neurons
+        self.bias = bias
+        self.gain = gain
+        if label is None:
+            label = "<%s%d>" % (self.__class__.__name__, id(self))
+        self.label = label
+
+        self.probes = {'output': []}
+
+    def __str__(self):
+        r = self.__class__.__name__ + "("
+        r += self.label if hasattr(self, 'label') else "id " + str(id(self))
+        r += ", %dN)" % self.n_neurons if hasattr(self, 'n_neurons') else ")"
+        return r
+
+    def __repr__(self):
+        return str(self)
+
+    def default_encoders(self, dimensions, rng):
+        raise NotImplementedError("Neurons must provide default_encoders")
+
+    def rates(self, x, gain, bias):
+        raise NotImplementedError("Neurons must provide rates")
+
+    def gain_bias(self, max_rates, intercepts):
+        raise NotImplementedError("Neurons must provide gain_bias")
+
+    def probe(self, probe):
+        self.probes[probe.attr].append(probe)
+
+        if probe.attr == 'output':
+            nengo.Connection(self, probe, filter=probe.filter)
+        else:
+            raise NotImplementedError(
+                "Probe target '%s' is not probable" % probe.attr)
+        return probe
+
+    def add_to_model(self, model):
+        model.objs.append(self)
+
+
 class Direct(Neurons):
 
     def __init__(self, n_neurons=None, label=None):
@@ -48,11 +95,11 @@ class Direct(Neurons):
     def default_encoders(self, dimensions, rng):
         return np.identity(dimensions)
 
-    def rates(self, x):
+    def rates(self, x, gain, bias):
         return x
 
-    def set_gain_bias(self, max_rates, intercepts):
-        pass
+    def gain_bias(self, max_rates, intercepts):
+        return None, None
 
 
 # TODO: class BasisFunctions or Population or Express;
@@ -94,7 +141,7 @@ class _LIFBase(Neurons):
             np.seterr(**old)
         return r
 
-    def rates(self, x):
+    def rates(self, x, gain, bias):
         """LIF firing rates in Hz for vector space
 
         Parameters
@@ -102,10 +149,10 @@ class _LIFBase(Neurons):
         x: ndarray of any shape
             vector-space inputs
         """
-        J = self.gain * x + self.bias
+        J = gain * x + bias
         return self.rates_from_current(J)
 
-    def set_gain_bias(self, max_rates, intercepts):
+    def gain_bias(self, max_rates, intercepts):
         """Compute the alpha and bias needed to get the given max_rate
         and intercept values.
 
@@ -124,8 +171,9 @@ class _LIFBase(Neurons):
         intercepts = np.asarray(intercepts)
         x = 1.0 / (1 - np.exp(
             (self.tau_ref - (1.0 / max_rates)) / self.tau_rc))
-        self.gain = (1 - x) / (intercepts - 1.0)
-        self.bias = 1 - self.gain * intercepts
+        gain = (1 - x) / (intercepts - 1.0)
+        bias = 1 - gain * intercepts
+        return gain, bias
 
 
 class LIFRate(_LIFBase):

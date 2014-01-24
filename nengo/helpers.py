@@ -8,9 +8,10 @@ import numpy as np
 
 
 def tuning_curves(sim_ens):
+
     eval_points = np.array(sim_ens.eval_points)
     eval_points.sort(axis=0)
-    activities = sim_ens.activities(eval_points)
+    activities = sim_ens.neurons.rates(eval_points)  # XXX bias?
     return eval_points, activities
 
 
