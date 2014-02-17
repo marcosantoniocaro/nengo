@@ -753,6 +753,7 @@ class Builder(object):
             self.builders[c.__class__](c)
 
         return {"dt": self.dt,
+                "data": self.data,
                 "label": self.label,
                 "seed": self.seed,
                 "probes": self.probes,
