@@ -68,7 +68,7 @@ def test_dts(Simulator):
     for i, p in enumerate(probes):
         t = sim.dt * np.arange(int(np.ceil(simtime / dts[i])))
         x = np.asarray([input_fn(tt) for tt in t])
-        y = sim.data(p)
+        y = sim.data[p]
         assert len(x) == len(y)
         assert np.allclose(y[1:], x[:-1])  # 1-step delay
 
@@ -101,7 +101,7 @@ def test_large(Simulator):
     t = sim.dt * np.arange(int(np.round(simtime / sim.dt)))
     x = np.asarray([input_fn(ti) for ti in t])
     for p in probes:
-        y = sim.data(p)
+        y = sim.data[p]
         assert np.allclose(y[1:], x[:-1])  # 1-step delay
 
 

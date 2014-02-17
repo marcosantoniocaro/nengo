@@ -182,7 +182,7 @@ def sorted_neurons(ensemble, iterations=100, seed=None):
 
     >>>indices = sorted_neurons(simulator, 'My neurons')
     >>>plt.figure()
-    >>>rasterplot(sim.data('My neurons.spikes')[:,indices])
+    >>>rasterplot(sim.data['My neurons.spikes'][:,indices])
 
     Algorithm
     ---------

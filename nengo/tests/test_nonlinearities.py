@@ -110,7 +110,7 @@ def test_lif_base(nl_nodirect):
 
     t_final = 1.0
     sim.run(t_final)
-    spikes = sim.data(spike_probe).sum(0)
+    spikes = sim.data[spike_probe].sum(0)
 
     math_rates = lif.rates(x, bias)
     sim_rates = spikes / t_final
