@@ -7,11 +7,13 @@ except ImportError:
 import numpy as np
 
 
-def tuning_curves(sim_ens):
-
+def tuning_curves(sim_ens, data):
     eval_points = np.array(sim_ens.eval_points)
     eval_points.sort(axis=0)
-    activities = sim_ens.neurons.rates(eval_points)  # XXX bias?
+    activities = sim_ens.neurons.rates(
+        eval_points * data['encoders'][sim_ens].T,
+        data['gain'][sim_ens.neurons],
+        data['bias'][sim_ens.neurons])
     return eval_points, activities
 
 
@@ -154,7 +156,7 @@ def _similarity(encoders, index, rows, cols=1):
     return sim / count
 
 
-def sorted_neurons(ensemble, iterations=100, seed=None):
+def sorted_neurons(ensemble, encoders, iterations=100, seed=None):
     '''Sort neurons in an ensemble by encoder and intercept.
 
     Parameters
@@ -198,7 +200,6 @@ def sorted_neurons(ensemble, iterations=100, seed=None):
     '''
 
     # Normalize all the neurons
-    encoders = np.array(ensemble.encoders)
     for i in np.arange(encoders.shape[0]):
         encoders[i, :] = encoders[i, :] / np.linalg.norm(encoders[i, :])
 

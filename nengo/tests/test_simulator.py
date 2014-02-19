@@ -5,6 +5,7 @@ import pytest
 
 import nengo
 from nengo.builder import Builder, ProdUpdate, Copy, Reset, DotInc, Signal
+import nengo.simulator
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ def mybuilder(model, dt):
     return {'probes': [] if not hasattr(model, 'probes') else model.probes,
             'operators': ([] if not hasattr(model, 'operators')
                           else model.operators),
+            '_data': {},
             'dt': dt, 'seed': 0}
 
 
@@ -220,6 +222,14 @@ def test_encoder_decoder_with_views(RefSimulator):
     check(foo, .39)
     check(b.sig_in[pop], [0.2, 0.4])
     check(b.sig_out[pop], [1.2, 1.4])
+
+
+def test_probedict():
+    raw = {'scalar': 5,
+           'list': [2, 4, 6]}
+    probedict = nengo.simulator.ProbeDict(raw)
+    assert np.all(probedict['scalar'] == np.asarray(raw['scalar']))
+    assert np.all(probedict.get('list') == np.asarray(raw.get('list')))
 
 
 if __name__ == "__main__":

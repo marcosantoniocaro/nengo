@@ -6,7 +6,7 @@ Reference simulator for nengo models.
 
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import defaultdict, Mapping
 import itertools
 import logging
 
@@ -54,6 +54,37 @@ class SignalDict(dict):
             raise KeyError(obj)
 
 
+class ProbeDict(Mapping):
+    """
+    Map from Probe -> ndarray
+
+    This is more like a view on the dict that the simulator manipulates.
+    However, for speed reasons, the simulator uses Python lists,
+    and we want to return NumPy arrays. Additionally, this mapping
+    is readonly, which is more appropriate for its purpose.
+
+    """
+
+    def __init__(self, raw):
+        self.raw = raw
+
+    def __getitem__(self, key):
+        return np.asarray(self.raw[key])
+
+    def __iter__(self):
+        try:
+            # Python 2
+            for k, v in self.raw.iteritems():
+                yield k, np.asarray(v)
+        except AttributeError:
+            # Python 3
+            for k, v in self.raw.items():
+                yield k, np.asarray(v)
+
+    def __len__(self):
+        return len(self.raw)
+
+
 class Simulator(object):
     """Reference simulator for models."""
 
@@ -83,7 +114,8 @@ class Simulator(object):
                        for node in self._step_order]
 
         self.n_steps = 0
-        self.data.update(dict((probe, []) for probe in self.probes))
+        self._data.update(dict((probe, []) for probe in self.probes))
+        self.data = ProbeDict(self._data)
 
     def _init_dg(self, verbose=False):  # noqa
         operators = self.operators
@@ -218,7 +250,7 @@ class Simulator(object):
             period = int(probe.dt / self.dt)
             if self.n_steps % period == 0:
                 tmp = self._sigdict[probe.sig].copy()
-                self.data[probe].append(tmp)
+                self._data[probe].append(tmp)
 
         self._sigdict['__time__'] += self.dt
         self.n_steps += 1

@@ -13,6 +13,7 @@ def mybuilder(model, dt):
     return {'probes': [] if not hasattr(model, 'probes') else model.probes,
             'operators': ([] if not hasattr(model, 'operators')
                           else model.operators),
+            '_data': {},
             'dt': dt, 'seed': 0}
 
 

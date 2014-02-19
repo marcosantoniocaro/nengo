@@ -310,20 +310,6 @@ class Signal(SignalView):
         return self
 
 
-class SimulatorProbe(object):
-    """A model probe to record a signal"""
-
-    def __init__(self, sig, dt):
-        self.sig = sig
-        self.dt = dt
-
-    def __str__(self):
-        return "Probing " + str(self.sig)
-
-    def __repr__(self):
-        return str(self)
-
-
 class Operator(object):
     """
     Base class for operator instances understood by the reference simulator.
@@ -709,10 +695,9 @@ class Builder(object):
             method = getattr(self, methodname)
             if hasattr(method, '_builds'):
                 self.builders[method._builds] = method
-        self.data = {}
+        self._data = {}
         self.probes = []
         self.operators = []
-        self.probemap = {}
         self.sig_in = {}
         self.sig_out = {}
 
@@ -725,12 +710,11 @@ class Builder(object):
         self.seed = (np.random.randint(np.iinfo(np.int32).max)
                      if self.model.seed is None else self.model.seed)
         # XXX temporary, until better probes
-        self.data = {'gain': {},
-                     'bias': {},
-                     'encoders': {}}
+        self._data = {'gain': {},
+                      'bias': {},
+                      'encoders': {}}
         self.probes = []
         self.operators = []
-        self.probemap = {}
         self.sig_in = {}
         self.sig_out = {}
 
@@ -741,11 +725,10 @@ class Builder(object):
 
         # 2. Then probes
         logger.info("Building probes")
-        for target, copytarget in zip(model.probed, self.model.probed):
-            if not isinstance(self.model.probed[copytarget], SimulatorProbe):
-                self.builders[nengo.Probe](self.model.probed[copytarget])
-                self.probemap[model.probed[target]] = self.model.probed[
-                    copytarget].probe
+        for target in model.probed:
+            probe = self.model.probed[target]
+            self.builders[nengo.Probe](probe)
+            self.sig_in[probe] = probe.sig
 
         # 3. Then connections
         logger.info("Building connections")
@@ -753,12 +736,11 @@ class Builder(object):
             self.builders[c.__class__](c)
 
         return {"dt": self.dt,
-                "data": self.data,
+                "_data": self._data,
                 "label": self.label,
                 "seed": self.seed,
                 "probes": self.probes,
-                "operators": self.operators,
-                "probemap": self.probemap}
+                "operators": self.operators}
 
     def _get_new_seed(self):
         if self._rng is None:
@@ -792,11 +774,12 @@ class Builder(object):
         self.operators.append(Reset(self.sig_in[ens]))
 
         # Set up neurons
+
         ens.neurons.dimensions = ens.dimensions # XXX ens modified
-        self.data['gain'][ens.neurons] = ens.neurons.gain
-        self.data['bias'][ens.neurons] = ens.neurons.bias
-        if (self.data['gain'][ens.neurons] is None
-                or self.data['bias'][ens.neurons] is None):
+        self._data['gain'][ens.neurons] = ens.neurons.gain
+        self._data['bias'][ens.neurons] = ens.neurons.bias
+        if (self._data['gain'][ens.neurons] is None
+                or self._data['bias'][ens.neurons] is None):
             # if max_rates and intercepts are distributions,
             # turn them into fixed samples.
             max_rates, intercepts = ens.max_rates, ens.intercepts
@@ -804,7 +787,7 @@ class Builder(object):
                 max_rates = max_rates.sample(ens.neurons.n_neurons, rng=rng)
             if hasattr(intercepts, 'sample'):
                 intercepts = intercepts.sample(ens.neurons.n_neurons, rng=rng)
-            self.data['gain'][ens.neurons], self.data['bias'][ens.neurons] = (
+            self._data['gain'][ens.neurons], self._data['bias'][ens.neurons] = (
                 ens.neurons.gain_bias(max_rates, intercepts))
         self.builders[ens.neurons.__class__](ens.neurons)
 
@@ -822,12 +805,12 @@ class Builder(object):
 
             norm = np.sum(encoders * encoders, axis=1)[:, np.newaxis]
             encoders /= np.sqrt(norm)
-        self.data['encoders'][ens] = encoders
+        self._data['encoders'][ens] = encoders
 
         if isinstance(ens.neurons, nengo.Direct):
             scaled_encoders = encoders
         else:
-            scaled_encoders = encoders * (self.data['gain'][ens.neurons]
+            scaled_encoders = encoders * (self._data['gain'][ens.neurons]
                                           / ens.radius)[:, np.newaxis]
         self.operators.append(DotInc(
             Signal(scaled_encoders, name=ens.label + ".scaled_encoders"),
@@ -884,19 +867,12 @@ class Builder(object):
 
     @builds(nengo.Probe)
     def build_probe(self, probe):
-        # Set up signal
-        self.sig_in[probe] = Signal(np.zeros(probe.dimensions),
-                                    name=probe.label)
-
-        # reset input signal to 0 each timestep
-        self.operators.append(Reset(self.sig_in[probe]))
-
         # Set up probe
-        probe.probe = SimulatorProbe(
-            self.sig_in[probe],
-            self.model.dt if probe.sample_every is None
-            else probe.sample_every)
-        self.probes.append(probe.probe)
+        probe.sig = Signal(np.zeros(probe.dimensions),
+                           name=probe.label)
+        # reset input signal to 0 each timestep
+        self.operators.append(Reset(probe.sig))
+        self.probes.append(probe)
 
     @staticmethod
     def filter_coefs(pstc, dt):
@@ -961,10 +937,10 @@ class Builder(object):
             signal = Signal(np.zeros(conn.dimensions), name=conn.label)
 
             x = np.dot(conn.eval_points,
-                       self.data['encoders'][conn.pre].T / conn.pre.radius)
+                       self._data['encoders'][conn.pre].T / conn.pre.radius)
             activities = self.dt * conn.pre.neurons.rates(
-                x, self.data['gain'][conn.pre.neurons],
-                self.data['bias'][conn.pre.neurons])
+                x, self._data['gain'][conn.pre.neurons],
+                self._data['bias'][conn.pre.neurons])
             if conn.function is None:
                 targets = conn.eval_points
             else:
@@ -999,7 +975,7 @@ class Builder(object):
         # Set up transform
         transform = np.array(conn.transform_full, dtype=np.float64, copy=True)
         if isinstance(conn.post, nengo.objects.Neurons):
-            transform *= self.data['gain'][conn.post][:, np.newaxis]
+            transform *= self._data['gain'][conn.post][:, np.newaxis]
         self.operators.append(
             DotInc(Signal(transform, name=conn.label + ".transform"),
                    signal,
@@ -1031,7 +1007,7 @@ class Builder(object):
                                       name=neurons.label + '.input')
         self.sig_out[neurons] = Signal(np.zeros(neurons.n_out),
                                        name=neurons.label + '.output')
-        bias_signal = Signal(self.data['bias'][neurons],
+        bias_signal = Signal(self._data['bias'][neurons],
                              name=neurons.label + '.bias')
         self.operators.append(Copy(src=bias_signal, dst=self.sig_in[neurons]))
 
