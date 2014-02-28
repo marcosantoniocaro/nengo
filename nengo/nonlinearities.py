@@ -394,3 +394,39 @@ class OJA(LearningRule):
             raise ValueError("Connection is already set and cannot be changed.")
         self._connection = connection
 
+class Hebb(LearningRule):
+    def __init__(self, post_tau=0.005, learning_rate=1e-5, label=None):
+
+        self.post_tau = post_tau
+        self.learning_rate = learning_rate
+
+        if label is None:
+            label = "<Hebb %d>" % id(self)
+        self.label = label
+
+        self.probes = {'delta': [],
+                      }
+
+    def probe(self, probe):
+        """Probe a signal in this learning rule.
+
+        Parameters
+        ----------
+        probe: Probe
+
+        Returns
+        -------
+        probe : Probe
+        """
+        self.probes[probe.attr].append(probe)
+
+        if probe.attr == 'delta':
+            probe.dimensions = (self.connection.post.n_neurons,
+                                self.connection.pre.n_neurons)
+            objects.Connection(self, probe, pre_attr='delta', filter=probe.filter,
+                               transform=np.eye(self.connection.post.n_neurons))
+        else:
+            raise NotImplementedError(
+                "Probe target '%s' is not probable" % probe.attr)
+        return probe
+

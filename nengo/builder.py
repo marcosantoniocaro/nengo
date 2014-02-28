@@ -861,6 +861,50 @@ class SimOJA(Operator):
             transform[...] += delta - oja_scale  * oja
         return step
 
+
+class SimHebb(Operator):
+    """
+    Change the transform according to the Hebbian rule
+    """
+    def __init__(self, transform, delta, post_filtered, learning_rate):
+        self.transform = transform
+        self.delta = delta
+        self.post_filtered = post_filtered
+        self.learning_rate = learning_rate
+
+        print delta.shape
+        print post_filtered.shape
+        print transform.shape
+
+        self.reads = [post_filtered]
+        self.updates = [transform, delta]
+        self.sets = []
+        self.incs = []
+
+    def init_sigdict(self, sigdict, dt):
+        Operator.init_sigdict(self, sigdict, dt)
+        sigdict[self.delta] = np.zeros(
+                self.delta.shape,
+                dtype=self.delta.dtype)
+
+    def make_step(self, dct, dt):
+        transform = dct[self.transform]
+        delta = dct[self.delta]
+        post_filtered = dct[self.post_filtered]
+        learning_rate = self.learning_rate
+
+        import q
+        def step():
+            delta[...] = learning_rate * np.outer(post_filtered, post_filtered)
+
+            #post_squared = learning_rate * post_filtered * post_filtered
+            #for i in range(len(post_squared)):
+            #    delta[i, :] -= transform[i, :] * post_squared[i]
+
+            transform[...] += delta
+        return step
+
+
 def builds(cls):
     """A decorator that adds a _builds attribute to a function,
     denoting that that function is used to build
@@ -1325,3 +1369,18 @@ class Builder(object):
                    learn=oja.learn,
                    end_time=oja.end_time
                    ))
+
+    @builds(nengo.nonlinearities.Hebb)
+    def build_hebb(self, hebb):
+        post_activities=hebb.connection.post.output_signal
+        post_filtered = self._filtered_signal(post_activities, hebb.post_tau)
+
+        hebb.delta = Signal(np.zeros((hebb.connection.post.n_neurons,
+                                      hebb.connection.pre.n_neurons)),
+                            name="delta")
+
+        self.model.operators.append(
+            SimHebb(transform=hebb.connection.transform_signal,
+                    delta=hebb.delta,
+                    post_filtered=post_filtered,
+                    learning_rate=hebb.learning_rate))
