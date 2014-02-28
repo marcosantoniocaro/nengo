@@ -30,6 +30,8 @@ class Thalamus(Module):
 
 
     def on_add(self, spa):
+        if isinstance(self.bg, str):
+            self.bg = spa.modules[self.bg]
 
         N = self.bg.rules.count
 
