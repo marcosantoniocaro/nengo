@@ -35,30 +35,30 @@ class Thalamus(Module):
 
 
         rules = nengo.networks.EnsembleArray(
-                    nengo.LIF(self.neurons_per_rule), 
+                    nengo.LIF(self.neurons_per_rule),
                     N, dimensions=1,
-                    intercepts=nengo.objects.Uniform(self.rule_threshold, 1), 
+                    intercepts=nengo.objects.Uniform(self.rule_threshold, 1),
                     label='rules')
         self.rules = rules
-        
+
         for ens in rules.ensembles:
             ens.encoders=[[1.0]]*self.neurons_per_rule
 
         bias = nengo.Node(output=[1], label='bias')
         self.bias = bias
 
-        nengo.Connection(rules.output, rules.input, 
+        nengo.Connection(rules.output, rules.input,
                         transform=(np.eye(N)-1)*self.inhibit,
                         filter=self.pstc_inhibit)
 
-        nengo.Connection(bias, rules.input, transform=np.ones((N, 1)), 
+        nengo.Connection(bias, rules.input, transform=np.ones((N, 1)),
                         filter=None)
 
         nengo.Connection(self.bg.output, rules.input, filter=None)
 
 
         for output, transform in self.bg.rules.get_outputs_direct().iteritems():
-            nengo.Connection(rules.output, output, transform=transform, 
+            nengo.Connection(rules.output, output, transform=transform,
                 filter=self.output_filter)
 
         for index, route in self.bg.rules.get_outputs_route():
@@ -70,7 +70,7 @@ class Thalamus(Module):
                                   intercepts=nengo.objects.Uniform(self.gate_threshold, 1),
                                   label='gate_%d_%s'%(index, target.name))
             gate.encoders = [[1]]*self.neurons_gate
-            
+
             nengo.Connection(rules.ensembles[index], gate, filter=self.pstc_to_gate, transform=-1)
             nengo.Connection(bias, gate, filter=None)
 
@@ -125,10 +125,10 @@ class Thalamus(Module):
                 if source.invert:
                     raise Exception('Inverting on a communication channel not supported yet')
 
-                subdim = self.channel_subdim 
+                subdim = self.channel_subdim
                 assert dim % subdim == 0  # TODO: Add these asserts elsewhere
                 channel = nengo.networks.EnsembleArray(
-                                nengo.LIF(self.neurons_per_channel_dim*subdim), 
+                                nengo.LIF(self.neurons_per_channel_dim*subdim),
                                 dim/subdim, dimensions=subdim,
                                 label='channel_%d_%s'%(index, target.name))
 
