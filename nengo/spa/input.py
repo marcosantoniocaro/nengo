@@ -19,5 +19,3 @@ class Input(Module):
             self.input = nengo.Node(val, label='input')
 
         nengo.Connection(self.input, target, filter=None)
-
-
