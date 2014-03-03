@@ -141,7 +141,7 @@ class Ensemble(object):
             Firing rates (in Hz) for each neuron at each point.
         """
         assert self._scaled_encoders is not None, (
-            "Cannot get neuron activities before ensemble has been built")
+            "Cannot get neuron activities of %s before ensemble has been built" % self)
         if eval_points is None:
             eval_points = self.eval_points
 

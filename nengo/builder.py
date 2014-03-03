@@ -752,7 +752,7 @@ class SimPES(Operator):
 
 class SimBCM(Operator):
     """
-    Change the transform according to the BCM rule 
+    Change the transform according to the BCM rule
     """
     def __init__(self, transform, delta,
                  pre_filtered, post_filtered, theta, learning_rate,
@@ -786,8 +786,8 @@ class SimBCM(Operator):
         import q
         def step():
             delta[...] = learning_rate * \
-                          np.outer(post_filtered * (post_filtered - theta), 
-                                   pre_filtered, 
+                          np.outer(post_filtered * (post_filtered - theta),
+                                   pre_filtered,
                                    )
             transform[...] += delta
         return step
@@ -866,15 +866,12 @@ class SimHebb(Operator):
     """
     Change the transform according to the Hebbian rule
     """
-    def __init__(self, transform, delta, post_filtered, learning_rate):
+    def __init__(self, transform, gain, delta, post_filtered, learning_rate):
         self.transform = transform
+        self.gain = gain
         self.delta = delta
         self.post_filtered = post_filtered
         self.learning_rate = learning_rate
-
-        print delta.shape
-        print post_filtered.shape
-        print transform.shape
 
         self.reads = [post_filtered]
         self.updates = [transform, delta]
@@ -893,15 +890,22 @@ class SimHebb(Operator):
         post_filtered = dct[self.post_filtered]
         learning_rate = self.learning_rate
 
+        print np.linalg.norm(post_filtered)
+        # assert np.allclose(transform / self.gain, np.eye(transform.shape[0]))
+
         import q
         def step():
             delta[...] = learning_rate * np.outer(post_filtered, post_filtered)
 
-            #post_squared = learning_rate * post_filtered * post_filtered
-            #for i in range(len(post_squared)):
-            #    delta[i, :] -= transform[i, :] * post_squared[i]
+            # np.seterr(all='raise')
+            post_squared = learning_rate * post_filtered * post_filtered
 
-            transform[...] += delta
+            for i in range(len(post_squared)):
+                # assert len(np.where(transform[i, :]/self.gain[i] < 0)) == 0
+                #delta[i, :] -= 0.5 * transform[i, :] * learning_rate * post_filtered[i]
+                delta[i, :] -= 10 * learning_rate * transform[i, :]/self.gain[i] * abs(post_filtered[i])
+
+            transform[...] += self.gain*delta
         return step
 
 
@@ -937,7 +941,7 @@ class Builder(object):
 
     def __init__(self, copy=True):
         # Whether or not we make a deep-copy of the model we're building
-        self.copy = copy
+        self.copy = False  # copy
 
         # Build up a diction mapping from high-level object -> builder method,
         # so that we don't have to use a lame if/elif chain to call the
@@ -1201,7 +1205,6 @@ class Builder(object):
                     if targets.ndim < 2:
                         targets.shape = targets.shape[0], 1
                 conn._decoders = conn.decoder_solver(activities, targets, rng)
-
             if conn.filter is not None and conn.filter > dt:
                 o_coef, n_coef = self.filter_coefs(pstc=conn.filter, dt=dt)
                 conn.decoder_signal = Signal(conn._decoders * n_coef)
@@ -1372,7 +1375,7 @@ class Builder(object):
 
     @builds(nengo.nonlinearities.Hebb)
     def build_hebb(self, hebb):
-        post_activities=hebb.connection.post.output_signal
+        post_activities=hebb.connection.pre.output_signal
         post_filtered = self._filtered_signal(post_activities, hebb.post_tau)
 
         hebb.delta = Signal(np.zeros((hebb.connection.post.n_neurons,
@@ -1381,6 +1384,7 @@ class Builder(object):
 
         self.model.operators.append(
             SimHebb(transform=hebb.connection.transform_signal,
+                    gain=hebb.connection.post.gain[:, np.newaxis],
                     delta=hebb.delta,
                     post_filtered=post_filtered,
                     learning_rate=hebb.learning_rate))
