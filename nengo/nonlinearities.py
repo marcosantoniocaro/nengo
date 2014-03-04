@@ -155,6 +155,7 @@ class _LIFBase(Neurons):
             (self.tau_ref - (1.0 / max_rates)) / self.tau_rc))
         self.gain = (1 - x) / (intercepts - 1.0)
         self.bias = 1 - self.gain * intercepts
+        assert len(self.gain[np.where(self.gain < 0)]) == 0
 
 
 class LIFRate(_LIFBase):
@@ -395,8 +396,8 @@ class OJA(LearningRule):
         self._connection = connection
 
 class Hebb(LearningRule):
-    def __init__(self, post_tau=0.005, learning_rate=1e-5, label=None):
-
+    def __init__(self, pre_tau=0.005, post_tau=0.005, learning_rate=1e-5, label=None):
+        self.pre_tau = pre_tau
         self.post_tau = post_tau
         self.learning_rate = learning_rate
 

@@ -866,14 +866,15 @@ class SimHebb(Operator):
     """
     Change the transform according to the Hebbian rule
     """
-    def __init__(self, transform, gain, delta, post_filtered, learning_rate):
+    def __init__(self, transform, gain, delta, pre_filtered, post_filtered, learning_rate):
         self.transform = transform
         self.gain = gain
         self.delta = delta
+        self.pre_filtered = pre_filtered
         self.post_filtered = post_filtered
         self.learning_rate = learning_rate
 
-        self.reads = [post_filtered]
+        self.reads = [pre_filtered, post_filtered]
         self.updates = [transform, delta]
         self.sets = []
         self.incs = []
@@ -887,25 +888,20 @@ class SimHebb(Operator):
     def make_step(self, dct, dt):
         transform = dct[self.transform]
         delta = dct[self.delta]
+        pre_filtered = dct[self.pre_filtered]
         post_filtered = dct[self.post_filtered]
         learning_rate = self.learning_rate
 
-        print np.linalg.norm(post_filtered)
-        # assert np.allclose(transform / self.gain, np.eye(transform.shape[0]))
+        # n = self.gain.size
+        # offset = self.gain*(2*n*np.eye(n) - np.ones((n,n)))
+        # transform[...] = offset
 
         import q
         def step():
-            delta[...] = learning_rate * np.outer(post_filtered, post_filtered)
-
-            # np.seterr(all='raise')
-            post_squared = learning_rate * post_filtered * post_filtered
-
-            for i in range(len(post_squared)):
-                # assert len(np.where(transform[i, :]/self.gain[i] < 0)) == 0
-                #delta[i, :] -= 0.5 * transform[i, :] * learning_rate * post_filtered[i]
-                delta[i, :] -= 10 * learning_rate * transform[i, :]/self.gain[i] * abs(post_filtered[i])
-
-            transform[...] += self.gain*delta
+            delta[...] = learning_rate * np.outer(post_filtered, pre_filtered)
+            # transform[...] = np.minimum(transform - offset + self.gain*delta, self.gain) + offset
+            transform[...] = np.minimum(transform + self.gain*delta, self.gain)
+            # f = len(transform[np.where(transform == self.gain)])
         return step
 
 
@@ -1375,8 +1371,8 @@ class Builder(object):
 
     @builds(nengo.nonlinearities.Hebb)
     def build_hebb(self, hebb):
-        post_activities=hebb.connection.pre.output_signal
-        post_filtered = self._filtered_signal(post_activities, hebb.post_tau)
+        pre_filtered = self._filtered_signal(hebb.connection.pre.output_signal, hebb.pre_tau)
+        post_filtered = self._filtered_signal(hebb.connection.post.output_signal, hebb.post_tau)
 
         hebb.delta = Signal(np.zeros((hebb.connection.post.n_neurons,
                                       hebb.connection.pre.n_neurons)),
@@ -1386,5 +1382,6 @@ class Builder(object):
             SimHebb(transform=hebb.connection.transform_signal,
                     gain=hebb.connection.post.gain[:, np.newaxis],
                     delta=hebb.delta,
+                    pre_filtered=pre_filtered,
                     post_filtered=post_filtered,
                     learning_rate=hebb.learning_rate))
