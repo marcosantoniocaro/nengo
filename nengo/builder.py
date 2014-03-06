@@ -892,16 +892,10 @@ class SimHebb(Operator):
         post_filtered = dct[self.post_filtered]
         learning_rate = self.learning_rate
 
-        # n = self.gain.size
-        # offset = self.gain*(2*n*np.eye(n) - np.ones((n,n)))
-        # transform[...] = offset
-
         import q
         def step():
             delta[...] = learning_rate * np.outer(post_filtered, pre_filtered)
-            # transform[...] = np.minimum(transform - offset + self.gain*delta, self.gain) + offset
             transform[...] = np.minimum(transform + self.gain*delta, self.gain)
-            # f = len(transform[np.where(transform == self.gain)])
         return step
 
 
