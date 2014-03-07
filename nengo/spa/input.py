@@ -9,7 +9,6 @@ class Input(Module):
 
     def on_add(self, spa):
         Module.on_add(self, spa)
-
         target, vocab = spa.get_module_input(self.target.label)
         if callable(self.value):
             val = lambda t: vocab.parse(self.value(t)).v
