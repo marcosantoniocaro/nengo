@@ -25,15 +25,15 @@ def test_spa_basic():
                 effect(state='A')
         
         def make(self):
-            self.state = spa.Buffer('state', dimensions=32)
+            self.state = spa.Memory(dimensions=32)
             
-            self.bg = spa.BasalGanglia('bg', rules=self.Rules)
-            self.thal = spa.Thalamus('thal', 'bg')
+            self.bg = spa.BasalGanglia(rules=self.Rules)
+            self.thal = spa.Thalamus(self.bg)
             
             def state_input(t):
                 if t<0.1: return 'A'
                 else: return '0'
-            self.input = spa.Input('state',state_input) 
+            self.input = spa.Input(self.state, state_input) 
 
     model = nengo.Model()
     with model:
