@@ -1,7 +1,7 @@
 import nengo
 import nengo.spa as spa
 
-model = nengo.Model('Parse-Write')
+model = nengo.Model()
 
 dimensions = 64          
 
@@ -25,15 +25,15 @@ class ParseWrite(spa.SPA):
             
     
     def make(self):
-        self.vision = spa.Buffer('vision', dimensions=dimensions)
-        self.phrase = spa.Buffer('phrase', dimensions=dimensions)
-        self.motor = spa.Buffer('motor', dimensions=dimensions)
+        self.vision = spa.Buffer(dimensions=dimensions)
+        self.phrase = spa.Buffer(dimensions=dimensions)
+        self.motor = spa.Buffer(dimensions=dimensions)
 
-        self.noun = spa.Memory('noun', dimensions=dimensions)
-        self.verb = spa.Memory('verb', dimensions=dimensions)
+        self.noun = spa.Memory(dimensions=dimensions)
+        self.verb = spa.Memory(dimensions=dimensions)
     
-        self.bg = spa.BasalGanglia('bg', rules=self.Rules)
-        self.thal = spa.Thalamus('thal', 'bg')
+        self.bg = spa.BasalGanglia(rules=self.Rules)
+        self.thal = spa.Thalamus(self.bg)
         
         def input_vision(t):
             index = int(t/0.5)
@@ -41,9 +41,9 @@ class ParseWrite(spa.SPA):
             if index >= len(sequence): 
                 index = len(sequence)-1
             return sequence[index]    
-        self.input = spa.Input('vision', input_vision)
+        self.input = spa.Input(self.vision, input_vision)
         
-        self.cortical = spa.Cortical('cortical', self.CorticalRules)
+        self.cortical = spa.Cortical(self.CorticalRules)
         
 with model:        
     s = ParseWrite(label='SPA')
