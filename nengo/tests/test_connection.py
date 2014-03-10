@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import nengo
-from nengo.utils.functions import piecewise
-from nengo.utils.testing import Plotter
+from nengo.utils.functions import piecewise, filtfilt
+from nengo.utils.testing import Plotter, allclose
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +187,7 @@ def test_neurons_to_neurons(Simulator, nl_nodirect):
     assert np.allclose(sim.data(b_p)[-10:], 0, atol=.1, rtol=.01)
 
 
-def test_weights(Simulator, nl_nodirect):
+def test_weights(Simulator, nl):
     name = 'test_weights'
     n1, n2 = 100, 50
 
@@ -198,40 +198,26 @@ def test_weights(Simulator, nl_nodirect):
 
     m = nengo.Model(name, seed=3902)
     u = nengo.Node(output=func)
-    a = nengo.Ensemble(nl_nodirect(n1), dimensions=2, radius=1.5)
-    b = nengo.Ensemble(nl_nodirect(n2), dimensions=1)
+    a = nengo.Ensemble(nl(n1), dimensions=2, radius=1.5)
+    b = nengo.Ensemble(nl(n2), dimensions=1)
+    bp = nengo.Probe(b)
 
     nengo.Connection(u, a)
     nengo.Connection(a, b, transform=transform,
                      weight_solver=nengo.decoders.lstsq_L2nz)
                      # weight_solver=nengo.decoders.lstsq_lasso)
 
-    up = nengo.Probe(u)
-    ap = nengo.Probe(a, filter=0.03)
-    bp = nengo.Probe(b, filter=0.03)
-
     sim = Simulator(m)
     sim.run(2.)
+
     t = sim.trange()
     x = func(t).T
     y = np.dot(x, transform.T)
-
-    atol = 0.1
-    rtol = 0.01
-    start = 100
-    delay = 40
-
-    with Plotter(Simulator, nl_nodirect) as plt:
-        plt.plot(t, sim.data(bp), label='B')
-        plt.plot(t, y, 'k:', label='y')
-        bound = atol + rtol * np.abs(y)
-        plt.plot(t[start + delay:], (y + bound)[start:-delay], 'k--')
-        plt.plot(t[start + delay:], (y - bound)[start:-delay], 'k--')
-        plt.savefig('test_connection.' + name + '.pdf')
-        plt.close()
-
-    assert np.allclose(sim.data(bp)[start + delay:], y[start:-delay],
-                       atol=atol, rtol=rtol)
+    z = filtfilt(sim.data(bp), 10, axis=0)
+    assert allclose(t, y.flatten(), z.flatten(),
+                    plotter=Plotter(Simulator, nl),
+                    filename='test_connection.' + name + '.pdf',
+                    atol=0.1, rtol=0, buf=100, delay=10)
 
 
 def test_dimensionality_errors(nl_nodirect):
