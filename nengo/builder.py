@@ -993,7 +993,7 @@ class Builder(object):
             # Add reset operator?
 
         # Add operator for transform
-        if isinstance(conn.post, nengo.nonlinearities.Neurons):
+        if isinstance(conn.post, nengo.neurons.Neurons):
             transform *= conn.post.gain[:, np.newaxis]
         self.model.operators.append(
             DotInc(Signal(transform, name=conn.label + ".transform"),
