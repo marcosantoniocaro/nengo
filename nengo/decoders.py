@@ -1,22 +1,19 @@
 """
-This file contains functions concerned with solving for decoders
-or other types of weight matrices.
+Functions concerned with solving for decoders or full weight matrices.
 
-The idea is that as we develop new methods to find decoders either more
-quickly or with different constraints (e.g., L1-norm regularization),
-the associated functions will be placed here.
+Many of the solvers in this file can solve for decoders or weight matrices,
+depending on whether the post-population encoders `E` are provided (see below).
+Solvers that are only intended to solve for either decoders or weights can
+remove the `E` parameter or make it manditory as they see fit.
 
-Notes
------
-
-All decoder solvers take following arguments:
+All solvers take following arguments:
   A : array_like (M, N)
     Matrix of the N neurons' activities at the M evaluation points
   Y : array_like (M, D)
     Matrix of the target decoded values for each of the D dimensions,
     at each of the M evaluation points.
 
-All decoder solvers have the following optional keyword parameters:
+All solvers have the following optional keyword parameters:
   rng : numpy.RandomState
     A random number generator to use as required. If none is provided,
     numpy.random will be used.
@@ -24,11 +21,10 @@ All decoder solvers have the following optional keyword parameters:
     Array of post-population encoders. Providing this tells the solver
     to return an array of connection weights rather than decoders.
 
-All decoder solvers return the following:
+All solvers return the following:
   X : np.ndarray (N, D) or (N, N2)
     (N, D) array of decoders if E is none, or (N, N2) array of weights
     if E is not none.
-
 """
 
 import numpy as np
@@ -93,8 +89,13 @@ def lstsq_L2nz(A, Y, rng, E=None, noise_amp=0.1):
 
 
 def lstsq_L1(A, Y, rng, E=None, l1=1e-4, l2=1e-6):
-    """Least-squares with L1 and L2 regularization (elastic net)."""
-    assert sklearn, "'lstsq_L1' requires the sklearn package to be installed"
+    """Least-squares with L1 and L2 regularization (elastic net).
+
+    This method is well suited for creating sparse decoders or weight matrices.
+    """
+    if sklearn is None:
+        raise RuntimeError(
+            "'lstsq_L1' requires the 'sklearn' package to be installed")
 
     # TODO: play around with these regularization constants (I just guessed).
     #   Do we need to scale regularization by number of neurons, to get same
@@ -117,8 +118,10 @@ def lstsq_L1(A, Y, rng, E=None, l1=1e-4, l2=1e-6):
 
 
 def lstsq_drop(A, Y, rng, E=None, noise_amp=0.1, drop=0.25, solver=lstsq_L2nz):
-    """Find coefficients (decoders/weights) with L2 regularization,
-    drop those nearest to zero, retrain remaining.
+    """Find sparser decoders/weights by dropping small values.
+
+    This solver first solves for coefficients (decoders/weights) with
+    L2 regularization, drops those nearest to zero, and retrains remaining.
     """
 
     # solve for coefficients using standard solver

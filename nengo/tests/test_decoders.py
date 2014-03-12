@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 import nengo
+from nengo.utils.builder import sample_hypersphere
 from nengo.utils.functions import filtfilt
 from nengo.utils.testing import Plotter, rms, allclose
 from nengo.decoders import (_cholesky, lstsq, lstsq_noise, lstsq_L2,
@@ -34,39 +35,38 @@ def test_cholesky(Simulator):
 
 
 def test_weights(Simulator):
+    solver = lstsq_L2
     rng = np.random.RandomState(39408)
 
     d = 2
     m, n = 100, 101
     n_samples = 1000
 
-    a = nengo.LIF(m)
+    a = nengo.LIF(m)  # population, for generating LIF tuning curves
     a.set_gain_bias(rng.uniform(50, 100, m), rng.uniform(-1, 1, m))
 
-    b = nengo.LIF(n)
-    b.set_gain_bias(rng.uniform(50, 100, n), rng.uniform(-1, 1, n))
+    ea = sample_hypersphere(d, m, rng=rng, surface=True).T  # pre encoders
+    eb = sample_hypersphere(d, n, rng=rng, surface=True).T  # post encoders
 
-    e1 = np.random.randn(d, m)
-    e1 /= np.sqrt((e1**2).sum(axis=0, keepdims=1))
-    e2 = np.random.randn(d, n)
-    e2 /= np.sqrt((e2**2).sum(axis=0, keepdims=1))
+    p = sample_hypersphere(d, n_samples, rng=rng)  # training eval points
+    A = a.rates(np.dot(p, ea))                     # training activations
+    X = p                                          # training targets
 
-    p1 = nengo.decoders.sample_hypersphere(d, n_samples, rng)
+    # find decoders and multiply by encoders to get weights
+    D = solver(A, X, rng=rng)
+    W1 = np.dot(D, eb)
 
-    A = a.rates(np.dot(p1, e1))
-    X = p1
+    # find weights directly
+    W2 = solver(A, X, rng=rng, E=eb)
 
-    D = lstsq_L2(A, X, rng=rng, noise_amp=0.1)
-    W1 = np.dot(D, e2)
-
-    W2 = lstsq_L2(A, X, rng=rng, E=e2, noise_amp=0.1)
-
-    p2 = nengo.decoders.sample_hypersphere(d, n_samples, rng)
-    A2 = a.rates(np.dot(p2, e1))
-
-    Y1 = np.dot(A2, W1)
-    Y2 = np.dot(A2, W2)
+    # assert that post inputs are close on test points
+    pt = sample_hypersphere(d, n_samples, rng=rng)  # testing eval points
+    At = a.rates(np.dot(pt, ea))                    # testing activations
+    Y1 = np.dot(At, W1)                             # post inputs from decoders
+    Y2 = np.dot(At, W2)                             # post inputs from weights
     assert np.allclose(Y1, Y2)
+
+    # assert that weights themselves are close (this is true for L2 weights)
     assert np.allclose(W1, W2)
 
 

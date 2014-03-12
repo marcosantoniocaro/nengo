@@ -379,6 +379,9 @@ class Connection(object):
         description TODO
     transform : array_like, shape (post_size, pre_size)
         Linear transform mapping the pre output to the post input.
+    weight_solver : callable
+        Function to compute a full connection weight matrix. Similar to
+        `decoder_solver`, but more general. See `nengo.decoders`.
     """
 
     _decoders = None
