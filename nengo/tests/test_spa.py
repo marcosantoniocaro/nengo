@@ -48,9 +48,9 @@ def test_spa_basic():
     vectors = s.get_module_output('state')[1].vectors.T
     import pylab
     pylab.subplot(2, 1, 1)
-    pylab.plot(np.dot(sim.data(pState), vectors))
+    pylab.plot(np.dot(sim.data[pState], vectors))
     pylab.subplot(2, 1, 2)
-    pylab.plot(sim.data(pRules))
+    pylab.plot(sim.data[pRules])
     pylab.show()
 
 

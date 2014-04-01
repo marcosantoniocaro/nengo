@@ -10,7 +10,7 @@ from nengo.tests.helpers import Plotter
 def test_spa_complex():
     model = nengo.Model()
 
-    dimensions = 64          
+    dimensions = 64
 
     class ParseWrite(spa.SPA):
         class Rules:
@@ -19,18 +19,18 @@ def test_spa_complex():
                 effect(verb=vision)
             def noun():
                 match(vision='ONE+TWO+THREE')
-                effect(noun=vision)        
+                effect(noun=vision)
             def write():
                 match(vision='0.5*(NONE-WRITE-ONE-TWO-THREE)', phrase='0.5*WRITE*VERB')
                 effect(motor=phrase*'~NOUN')
-                
+
         class CorticalRules:
             def noun():
                 effect(phrase=noun*'NOUN')
             def verb():
                 effect(phrase=verb*'VERB')
-                
-        
+
+
         def make(self):
             self.vision = spa.Buffer(dimensions=dimensions)
             self.phrase = spa.Buffer(dimensions=dimensions)
@@ -38,21 +38,21 @@ def test_spa_complex():
 
             self.noun = spa.Memory(dimensions=dimensions)
             self.verb = spa.Memory(dimensions=dimensions)
-        
+
             self.bg = spa.BasalGanglia(rules=self.Rules)
             self.thal = spa.Thalamus(self.bg)
-            
+
             def input_vision(t):
                 index = int(t/0.5)
                 sequence = 'WRITE ONE NONE WRITE TWO NONE THREE WRITE NONE'.split()
-                if index >= len(sequence): 
+                if index >= len(sequence):
                     index = len(sequence)-1
-                return sequence[index]    
+                return sequence[index]
             self.input = spa.Input(self.vision, input_vision)
-            
+
             self.cortical = spa.Cortical(self.CorticalRules)
-            
-    with model:        
+
+    with model:
         s = ParseWrite(label='SPA')
 
     probes = {
@@ -68,13 +68,13 @@ def test_spa_complex():
     import pylab as plt
     for i, module in enumerate('vision noun verb phrase motor'.split()):
         plt.subplot(5, 1, i+1)
-        plt.plot(np.dot(sim.data(probes[module]), s.get_module_output(module)[1].vectors.T))
+        plt.plot(np.dot(sim.data[probes[module]], s.get_module_output(module)[1].vectors.T))
         plt.legend(s.get_module_output(module)[1].keys, fontsize='xx-small')
         plt.ylabel(module)
     plt.savefig('test_spa_complex.pdf')
     plt.close()
-          
-    
+
+
 if __name__ == "__main__":
     nengo.log(debug=True)
     pytest.main([__file__, '-v'])
