@@ -41,12 +41,11 @@ class SPA(nengo.Network):
             self.cortical = spa.Cortical(CorticalRules)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         # the set of known modules
         self._modules = {}
         # the Vocabulary to use by default for a given dimensionality
         self._default_vocabs = {}
-        nengo.Network.__init__(self, *args, **kwargs)
 
     def __setattr__(self, key, value):
         """A setattr that handles Modules being added specially.

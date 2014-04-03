@@ -6,7 +6,8 @@ from .rules import Rules
 import numpy as np
 
 class Cortical(Module):
-    def make(self, rules, pstc=0.01):
+    def __init__(self, rules, pstc=0.01):
+        Module.__init__(self)
         self.rules = Rules(rules)
         self.pstc = pstc
 

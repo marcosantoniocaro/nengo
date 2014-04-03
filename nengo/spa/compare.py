@@ -5,10 +5,11 @@ from .module import Module
 import numpy as np
 
 class Compare(Module):
-    def make(self, dimensions,
+    def __init__(self, dimensions,
                         vocab=None, neurons_per_multiply=200,
                         output_scaling=1.0, radius=1.0):
 
+        Module.__init__(self)
         if vocab is None:
             vocab = dimensions
 

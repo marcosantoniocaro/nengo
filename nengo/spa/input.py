@@ -3,7 +3,8 @@ from .. import objects
 from .module import Module
 
 class Input(Module):
-    def make(self, target, value):
+    def __init__(self, target, value):
+        Module.__init__(self)
         self.target = target
         self.value = value
 

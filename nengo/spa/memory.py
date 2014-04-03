@@ -3,8 +3,9 @@ from .. import objects
 from .module import Module
 
 class Memory(Module):
-    def make(self, dimensions, subdimensions=16, neurons_per_dimension=50,
+    def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
                         filter=0.01, vocab=None):
+        Module.__init__(self)
 
         if vocab is None:
             vocab = dimensions

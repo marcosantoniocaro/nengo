@@ -9,11 +9,12 @@ import numpy as np
 
 
 class Thalamus(Module):
-    def make(self, bg, neurons_per_rule=50, inhibit=1, pstc_inhibit=0.008,
+    def __init__(self, bg, neurons_per_rule=50, inhibit=1, pstc_inhibit=0.008,
                         output_filter=0.01, rule_threshold=0.2,
                         neurons_per_channel_dim=50, channel_subdim=16,
                         channel_pstc=0.01, neurons_cconv=200,
                         neurons_gate=40, gate_threshold=0.3, pstc_to_gate=0.002):
+        Module.__init__(self)
         self.bg = bg
         self.neurons_per_rule = neurons_per_rule
         self.inhibit = inhibit

@@ -13,10 +13,9 @@ class Module(nengo.Network):
     (object, Vocabulary) pair.  The object can be a Node or an Ensemble.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.inputs = {}
         self.outputs = {}
-        nengo.Network.__init__(self, *args, **kwargs)
 
     def on_add(self, spa):
         """Called when this is assigned to a variable in the SPA network.

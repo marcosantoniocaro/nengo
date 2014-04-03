@@ -6,11 +6,11 @@ from .module import Module
 
 
 class BasalGanglia(nengo.networks.BasalGanglia, Module):
-    def make(self, rules, input_filter=0.002):
+    def __init__(self, rules, input_filter=0.002):
         self.rules = Rules(rules)
         self.input_filter = input_filter
-
-        nengo.networks.BasalGanglia.make(self, dimensions=self.rules.count)
+        Module.__init__(self)
+        nengo.networks.BasalGanglia.__init__(self, dimensions=self.rules.count)
 
     def on_add(self, spa):
         Module.on_add(self, spa)

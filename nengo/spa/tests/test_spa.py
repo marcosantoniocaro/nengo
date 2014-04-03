@@ -24,7 +24,8 @@ def test_spa_basic():
                 match(state='E')
                 effect(state='A')
 
-        def make(self):
+        def __init__(self):
+            spa.SPA.__init__(self)
             self.state = spa.Memory(dimensions=32)
 
             self.bg = spa.BasalGanglia(rules=self.Rules)
@@ -38,6 +39,7 @@ def test_spa_basic():
     model = nengo.Network()
     with model:
         s = SpaTestBasic(label='spa')
+        print s._modules
 
         pState = nengo.Probe(s.state.state.output, 'output', filter=0.03)
         pRules = nengo.Probe(s.thal.rules.output, 'output', filter=0.03)

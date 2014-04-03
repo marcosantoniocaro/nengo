@@ -31,7 +31,8 @@ def test_spa_complex():
                 effect(phrase=verb*'VERB')
 
 
-        def make(self):
+        def __init__(self):
+            spa.SPA.__init__(self)
             self.vision = spa.Buffer(dimensions=dimensions)
             self.phrase = spa.Buffer(dimensions=dimensions)
             self.motor = spa.Buffer(dimensions=dimensions)
