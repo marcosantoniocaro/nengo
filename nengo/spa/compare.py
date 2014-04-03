@@ -1,6 +1,6 @@
 import nengo
 from .. import objects
-from .base import Module
+from .module import Module
 
 import numpy as np
 
@@ -55,5 +55,5 @@ class Compare(Module):
 
         transform = np.array([vocab.parse('YES').v for i in range(vocab.dimensions)])
 
-        nengo.Connection(self.compare.product, self.output, 
+        nengo.Connection(self.compare.product, self.output,
                 transform=transform.T*self.output_scaling)
