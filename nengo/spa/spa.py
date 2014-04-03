@@ -18,7 +18,8 @@ class SPA(nengo.Network):
     respectively:
 
     class Example(spa.SPA):
-        def make(self):
+        def __init__(self):
+            spa.SPA.__init__(self)
             self.a = spa.Buffer(dimensions=8)
             self.b = spa.Buffer(dimensions=16)
             self.c = spa.Memory(dimensions=8)
@@ -34,7 +35,8 @@ class SPA(nengo.Network):
             def rule2():
                 effect(c=b*'~CAT')
 
-        def make(self):
+        def __init__(self):
+            spa.SPA.__init__(self)
             self.a = spa.Buffer(dimensions=8)
             self.b = spa.Buffer(dimensions=16)
             self.c = spa.Memory(dimensions=8)
