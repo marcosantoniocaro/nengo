@@ -1,6 +1,6 @@
 import nengo
 from .. import objects
-from .base import Module
+from .module import Module
 
 class Input(Module):
     def make(self, target, value):

@@ -1,4 +1,4 @@
-from .base import SPA
+from .spa import SPA
 from .memory import Memory
 from .buffer import Buffer
 from .basalganglia import BasalGanglia

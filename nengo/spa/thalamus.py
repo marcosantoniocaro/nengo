@@ -3,7 +3,7 @@ from .. import objects
 import nengo.networks as networks
 
 from .rules import Rules
-from .base import Module
+from .module import Module
 
 import numpy as np
 
