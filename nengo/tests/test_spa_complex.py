@@ -8,7 +8,7 @@ from nengo.tests.helpers import Plotter
 
 
 def test_spa_complex():
-    model = nengo.Model()
+    model = nengo.Network()
 
     dimensions = 64
 
@@ -55,13 +55,13 @@ def test_spa_complex():
     with model:
         s = ParseWrite(label='SPA')
 
-    probes = {
-        'vision': nengo.Probe(s.vision.state.output, filter=0.03),
-        'phrase': nengo.Probe(s.phrase.state.output, filter=0.03),
-        'motor': nengo.Probe(s.motor.state.output, filter=0.03),
-        'noun': nengo.Probe(s.noun.state.output, filter=0.03),
-        'verb': nengo.Probe(s.verb.state.output, filter=0.03),
-    }
+        probes = {
+            'vision': nengo.Probe(s.vision.state.output, filter=0.03),
+            'phrase': nengo.Probe(s.phrase.state.output, filter=0.03),
+            'motor': nengo.Probe(s.motor.state.output, filter=0.03),
+            'noun': nengo.Probe(s.noun.state.output, filter=0.03),
+            'verb': nengo.Probe(s.verb.state.output, filter=0.03),
+        }
     sim = nengo.Simulator(model)
     sim.run(4.5)
 
