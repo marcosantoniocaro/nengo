@@ -122,14 +122,18 @@ class SemanticPointer:
         This is the normalized dotproduct, or (equivalently), the cosine of
         the angle between the two vectors.
         """
-        scale = numpy.linalg.norm(self.v) * numpy.linalg.norm(other.v)
+        if isinstance(other, SemanticPointer):
+            other = other.v
+        scale = numpy.linalg.norm(self.v) * numpy.linalg.norm(other)
         if scale == 0:
             return 0
-        return numpy.dot(self.v, other.v) / scale
+        return numpy.dot(self.v, other) / scale
 
     def dot(self, other):
         """Return the dot product of the two vectors."""
-        return numpy.dot(self.v, other.v)
+        if isinstance(other, SemanticPointer):
+            other = other.v
+        return numpy.dot(self.v, other)
 
     def distance(self, other):
         """Return a distance measure between the vectors.
