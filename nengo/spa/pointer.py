@@ -1,108 +1,164 @@
-import numpy as np
-from numpy.fft import fft
-from numpy.fft import ifft
-from numpy.linalg import norm
+import numpy
+import numpy.linalg
+import numpy.fft
+
 
 class SemanticPointer:
+    """A Semantic Pointer, based on Holographic Reduced Representations.
+
+    Operators are overloaded so that + and - are addition, * is circular
+    convolution, and ~ is the inversion operator.
+    """
+
     def __init__(self, N=None, data=None):
         if data is not None:
-            self.v = np.array(data)
+            self.v = numpy.array(data)
         elif N is not None:
             self.randomize(N)
         else:
             raise Exception('Must specify size or data for Semantic Pointer')
-            
+
     def length(self):
-        return norm(self.v)        
-        
+        """Return the L2 norm of the vector."""
+        return numpy.linalg.norm(self.v)
+
     def normalize(self):
-        nrm = np.linalg.norm(self.v)        
-        if nrm>0: self.v/=nrm
-        
+        """Modify the vector to have an L2 norm of 1."""
+        nrm = numpy.linalg.norm(self.v)
+        if nrm > 0:
+            self.v /= nrm
+
     def __str__(self):
         return str(self.v)
-        
+
     def randomize(self, N=None):
-        if N is None: N=len(self.v)
-        self.v=np.random.randn(N)
+        """Set the vector to be a random vector with L2 norm of 1."""
+        if N is None:
+            N = len(self.v)
+        self.v = numpy.random.randn(N)
         self.normalize()
-        
+
     def make_unitary(self):
-        fft_val = fft(self.v)
+        """Make the vector unitary."""
+        fft_val = numpy.fft.fft(self.v)
         fft_imag = fft_val.imag
         fft_real = fft_val.real
-        fft_norms = np.sqrt(fft_imag**2 + fft_real**2)
+        fft_norms = numpy.sqrt(fft_imag**2 + fft_real**2)
         fft_unit = fft_val / fft_norms
-        self.v = (ifft(fft_unit)).real
-        
+        self.v = (numpy.fft.ifft(fft_unit)).real
+
     def __add__(self, other):
         return SemanticPointer(data=self.v + other.v)
-        
+
     def __iadd__(self, other):
         self.v += other.v
         return self
-        
+
     def __neg__(self):
-        return SemanticPointer(data=-self.v)    
-        
+        return SemanticPointer(data=-self.v)
+
     def __sub__(self, other):
         return SemanticPointer(data=self.v - other.v)
-        
+
     def __isub__(self, other):
         self.v -= other.v
         return self
-        
+
     def __mul__(self, other):
+        """Multiplication of two SemanticPointers is circular convolution.
+
+        If mutliplied by a scaler, we do normal multiplication.
+        """
         if isinstance(other, SemanticPointer):
             return self.convolve(other)
-        else:
+        elif isinstance(other, (int, float)):
             return SemanticPointer(data=self.v * other)
-            
+        else:
+            raise Exception('Can only multiply by SemanticPointers or scalars')
+
     def convolve(self, other):
-        x=ifft(fft(self.v) * fft(other.v)).real
+        """Return the circular convolution of two SemanticPointers."""
+        x = numpy.fft.ifft(numpy.fft.fft(self.v) * numpy.fft.fft(other.v)).real
         return SemanticPointer(data=x)
-        
+
     def __rmul__(self, other):
+        """Multiplication of two SemanticPointers is circular convolution.
+
+        If mutliplied by a scaler, we do normal multiplication.
+        """
         if isinstance(other, SemanticPointer):
             return self.convolve(other)
-        else:
+        elif isinstance(other, (int, float)):
             return SemanticPointer(data=self.v * other)
-            
+        else:
+            raise Exception('Can only multiply by SemanticPointers or scalars')
+
     def __imul__(self, other):
-        self.v = ifft(fft(self.v) * fft(other.v)).real
+        """Multiplication of two SemanticPointers is circular convolution.
+
+        If mutliplied by a scaler, we do normal multiplication.
+        """
+        if isinstance(other, SemanticPointer):
+            self.v = numpy.fft.ifft(numpy.fft.fft(self.v) *
+                                    numpy.fft.fft(other.v)).real
+        elif isinstance(other, (int, float)):
+            self.v *= other
+        else:
+            raise Exception('Can only multiply by SemanticPointers or scalars')
         return self
-        
+
     def compare(self, other):
-        scale = norm(self.v) * norm(other.v)
-        if scale==0: return 0
-        return np.dot(self.v, other.v) / scale
-        
+        """Return the similarity between two SemanticPointers.
+
+        This is the normalized dotproduct, or (equivalently), the cosine of
+        the angle between the two vectors.
+        """
+        scale = numpy.linalg.norm(self.v) * numpy.linalg.norm(other.v)
+        if scale == 0:
+            return 0
+        return numpy.dot(self.v, other.v) / scale
+
     def dot(self, other):
-        return np.dot(self.v, other.v)
-        
+        """Return the dot product of the two vectors."""
+        return numpy.dot(self.v, other.v)
+
     def distance(self, other):
+        """Return a distance measure between the vectors.
+
+        This is 1-cos(angle), so that it is 0 when they are identical, and
+        the distance gets larger as the vectors are farther apart.
+        """
         return 1 - self.compare(other)
-        
+
     def __invert__(self):
-        N = len(self.v)
-        return SemanticPointer(data=[self.v[0]] + [self.v[N-i] for i in range(1,N)])
-        
+        """Return a reorganized vector that acts as an inverse for convolution.
+
+        This reorganization turns circular convolution into circular
+        correlation, meaning that A*B*~B is approximately A.
+
+        For the vector [1,2,3,4,5], the inverse is [1,5,4,3,2].
+        """
+        return SemanticPointer(data=numpy.hstack((self.v[0], self.v[:0:-1])))
+
     def __len__(self):
+        """Return the number of dimensions in the vector."""
         return len(self.v)
-        
+
     def copy(self):
+        """Return another semantic pointer with the same data."""
         return SemanticPointer(data=self.v)
-        
+
     def mse(self, other):
-        err = 0
-        for i in range(len(self.v)):
-            err += (self.v[i] - other.v[i])**2
-        return err / len(self.v)
-        
+        """Return the mean-squared-error between two vectors."""
+        return numpy.sum((self-other).v**2)/len(self.v)
+
     def get_convolution_matrix(self):
+        """Return the matrix that does a circular convolution by this vector.
+
+        This should be such that A*B == dot(A.get_convolution_matrix, B.v)
+        """
         D = len(self.v)
         T = []
         for i in range(D):
-            T.append([self.v[(i-j)%D] for j in range(D)])
-        return np.array(T)
-    
+            T.append([self.v[(i - j) % D] for j in range(D)])
+        return numpy.array(T)
