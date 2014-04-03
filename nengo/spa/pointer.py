@@ -10,11 +10,11 @@ class SemanticPointer:
     convolution, and ~ is the inversion operator.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, rng=None):
         if isinstance(data, int):
             if data < 1:
                 raise Exception("number of dimensions must be a positive int")
-            self.randomize(data)
+            self.randomize(data, rng=rng)
         else:
             try:
                 len(data)
@@ -38,11 +38,13 @@ class SemanticPointer:
     def __str__(self):
         return str(self.v)
 
-    def randomize(self, N=None):
+    def randomize(self, N=None, rng=None):
         """Set the vector to be a random vector with L2 norm of 1."""
         if N is None:
             N = len(self.v)
-        self.v = numpy.random.randn(N)
+        if rng is None:
+            rng = numpy.random
+        self.v = rng.randn(N)
         self.normalize()
 
     def make_unitary(self):
