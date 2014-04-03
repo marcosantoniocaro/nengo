@@ -59,6 +59,12 @@ class SPA(nengo.Network):
             value.label = key
             self._modules[value.label] = value
             value.on_add(self)
+            for k, (obj, v) in value.inputs.iteritems():
+                if type(v) == int:
+                    value.inputs[k] = (obj, self.get_default_vocab(v))
+            for k, (obj, v) in value.outputs.iteritems():
+                if type(v) == int:
+                    value.outputs[k] = (obj, self.get_default_vocab(v))
 
     def get_default_vocab(self, dimensions):
         """Return a Vocabulary with the desired dimensions.
