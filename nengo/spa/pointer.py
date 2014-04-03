@@ -10,13 +10,20 @@ class SemanticPointer:
     convolution, and ~ is the inversion operator.
     """
 
-    def __init__(self, N=None, data=None):
-        if data is not None:
-            self.v = numpy.array(data)
-        elif N is not None:
-            self.randomize(N)
+    def __init__(self, data):
+        if isinstance(data, int):
+            if data < 1:
+                raise Exception("number of dimensions must be a positive int")
+            self.randomize(data)
         else:
-            raise Exception('Must specify size or data for Semantic Pointer')
+            try:
+                len(data)
+            except:
+                raise Exception("Must specify either the data or the length" +
+                                " for a SemanticPointer.")
+            self.v = numpy.array(data, dtype=float)
+            if len(self.v.shape) != 1:
+                raise Exception("data must be a vector")
 
     def length(self):
         """Return the L2 norm of the vector."""
