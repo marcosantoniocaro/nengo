@@ -35,7 +35,7 @@ def test_spa_basic():
                 else: return '0'
             self.input = spa.Input(self.state, state_input)
 
-    model = nengo.Model()
+    model = nengo.Network()
     with model:
         s = SpaTestBasic(label='spa')
 
