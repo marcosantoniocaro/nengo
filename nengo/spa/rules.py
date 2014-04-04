@@ -79,7 +79,7 @@ class Rule(object):
         if len(args)>0: raise Exception('invalid effect in rule "%s"'%self.name)
         for k, v in kwargs.iteritems():
             if k not in self.outputs:
-                raise Exception('No module named "%s" found for effect in rule "%s"'%(k, self.name))
+                raise KeyError('No module named "%s" found for effect in rule "%s"'%(k, self.name))
             if isinstance(v, basestring):
                 assert k not in self.effects_direct
                 self.effects_direct[k] = v
