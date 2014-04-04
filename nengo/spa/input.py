@@ -1,6 +1,7 @@
 import nengo
 from .module import Module
 
+
 class Input(Module):
     """A SPA module for providing external inputs to other modules.
 
@@ -20,6 +21,7 @@ class Input(Module):
         self.input_nodes = {}
 
     def on_add(self, spa):
+        """Create the connections and nodes."""
         Module.on_add(self, spa)
 
         for (name, value) in self.kwargs.items():
@@ -27,7 +29,7 @@ class Input(Module):
             if callable(value):
                 val = lambda t: vocab.parse(value(t)).v
             else:
-                val = vocab.parse(self.value).v
+                val = vocab.parse(value).v
 
             with self:
                 node = nengo.Node(val, label='input')
