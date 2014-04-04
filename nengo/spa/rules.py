@@ -17,6 +17,8 @@ class Input(object):
             return TransformedInput(self.name, self.obj, self.vocab, self.invert, other)
         elif isinstance(other, Input):
             return ConvolvedInput(self.name, self.obj, self.vocab, self.invert, other)
+        elif isinstance(other, (float, int)):
+            return TransformedInput(self.name, self.obj, self.vocab, self.invert, '%g'%other)
         else:
             raise Exception('Rule error: multiplication of an Input ("%s") by unknown term ("%s")'%(self.name, other))
     def __invert__(self):
