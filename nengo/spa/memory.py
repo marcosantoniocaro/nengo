@@ -1,24 +1,32 @@
 import nengo
-from .. import objects
-from .module import Module
+from .buffer import Buffer
 
-class Memory(Module):
+
+class Memory(Buffer):
+    """A SPA module capable of storing a vector over time.
+
+    Parameters are the same as Buffer, with the following additions:
+
+    Parameters
+    ----------
+    filter : float
+        synaptic filter to use on recurrent connection
+    tau : float or None
+        Effective time constant of the integrator.  If None, it should
+        have an infinite time constant.
+    """
+
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
-                        filter=0.01, vocab=None):
-        Module.__init__(self)
+                 filter=0.01, vocab=None, tau=None):
+        Buffer.__init__(self, dimensions=dimensions,
+                        subdimensions=subdimensions,
+                        neurons_per_dimension=neurons_per_dimension,
+                        vocab=vocab)
 
-        if vocab is None:
-            vocab = dimensions
+        if tau is None:
+            transform = 1.0
+        else:
+            transform = 1.0 - filter / tau
 
-        self.state = nengo.networks.EnsembleArray(
-                                nengo.LIF(neurons_per_dimension*subdimensions),
-                                dimensions/subdimensions,
-                                dimensions=subdimensions, label='state')
-
-        nengo.Connection(self.state.output, self.state.input, filter=filter)
-
-        self.inputs = dict(default=(self.state.input, vocab))
-        self.outputs = dict(default=(self.state.output, vocab))
-
-
-
+        nengo.Connection(self.state.output, self.state.input,
+                         transform=transform, filter=filter)
