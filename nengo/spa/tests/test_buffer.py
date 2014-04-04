@@ -41,7 +41,7 @@ def test_neurons():
     assert model.buffer.state.ensembles[0].n_neurons == 2
 
 
-class test_exception():
+def test_exception():
     class Basic(spa.SPA):
         def __init__(self):
             spa.SPA.__init__(self)
@@ -56,7 +56,7 @@ class test_exception():
             self.buffer = spa.Buffer(dimensions=12, subdimensions=3)
     model = Basic()
 
-class test_run():
+def test_run():
     class Basic(spa.SPA):
         def __init__(self):
             spa.SPA.__init__(self)
