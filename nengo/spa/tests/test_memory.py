@@ -69,7 +69,7 @@ class test_run():
                 else:
                     return '0'
 
-            self.input = spa.Input(self.memory, input)
+            self.input = spa.Input(memory=input)
     model = Basic()
 
     memory, vocab = model.get_module_output('memory')
@@ -98,7 +98,7 @@ class test_run_decay():
                 else:
                     return '0'
 
-            self.input = spa.Input(self.memory, input)
+            self.input = spa.Input(memory=input)
     model = Basic()
 
     memory, vocab = model.get_module_output('memory')

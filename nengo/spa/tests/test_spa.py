@@ -34,7 +34,7 @@ def test_spa_basic():
             def state_input(t):
                 if t<0.1: return 'A'
                 else: return '0'
-            self.input = spa.Input(self.state, state_input)
+            self.input = spa.Input(state=state_input)
 
     model = nengo.Network()
     with model:

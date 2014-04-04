@@ -49,7 +49,7 @@ def test_spa_complex():
                 if index >= len(sequence):
                     index = len(sequence)-1
                 return sequence[index]
-            self.input = spa.Input(self.vision, input_vision)
+            self.input = spa.Input(vision=input_vision)
 
             self.cortical = spa.Cortical(self.CorticalRules)
 

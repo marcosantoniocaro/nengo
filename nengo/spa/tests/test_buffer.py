@@ -68,7 +68,7 @@ class test_run():
                     return 'B'
                 else:
                     return '0'
-            self.input = spa.Input(self.buffer, input)
+            self.input = spa.Input(buffer=input)
     model = Basic()
 
     buffer, vocab = model.get_module_output('buffer')
