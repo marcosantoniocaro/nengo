@@ -21,6 +21,8 @@ class Module(nengo.Network):
         """Called when this is assigned to a variable in the SPA network.
 
         Overload this when you want processing to be delayed until after
-        the Module is attached to the SPA network.
+        the Module is attached to the SPA network.  This is usually for
+        modules that connect to other things in the SPA model (such as
+        basal ganglia or thalamus)
         """
         pass
