@@ -56,6 +56,7 @@ class ScalarList(object):
 
     def __mul__(self, other):
         return ScalarList([dp*other for dp in self.items])
+
     def __rmul__(self, other):
         return self.__mul__(other)
 
@@ -90,7 +91,6 @@ class Condition(object):
         for name in sources:
             self.objects[name] = Source(name)
         self.objects['dot'] = dot
-
 
         condition = condition.replace('\n', ' ')
         print condition

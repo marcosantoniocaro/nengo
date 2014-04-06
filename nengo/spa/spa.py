@@ -97,7 +97,7 @@ class SPA(nengo.Network):
                     yield '%s_%s' % (name, input)
 
     def get_input_vocab(self, name):
-        return get_module_input(name)[1]
+        return self.get_module_input(name)[1]
 
     def get_module_output(self, name):
         """Return the object to connect into for the given name.
@@ -120,4 +120,4 @@ class SPA(nengo.Network):
                     yield '%s_%s' % (name, output)
 
     def get_output_vocab(self, name):
-        return get_module_output(name)[1]
+        return self.get_module_output(name)[1]

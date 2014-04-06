@@ -1,6 +1,7 @@
 import nengo
 from .module import Module
 
+
 class Buffer(Module):
     """A module capable of representing a single vector, with no memory.
 
@@ -20,7 +21,7 @@ class Buffer(Module):
         The vocabulary to use to interpret this vector
     """
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
-                        vocab=None):
+                 vocab=None):
         Module.__init__(self)
 
         if vocab is None:
@@ -33,9 +34,9 @@ class Buffer(Module):
                             subdimensions)
 
         self.state = nengo.networks.EnsembleArray(
-                                nengo.LIF(neurons_per_dimension*subdimensions),
-                                dimensions/subdimensions,
-                                dimensions=subdimensions, label='state')
+            nengo.LIF(neurons_per_dimension*subdimensions),
+            dimensions/subdimensions,
+            dimensions=subdimensions, label='state')
 
         self.inputs = dict(default=(self.state.input, vocab))
         self.outputs = dict(default=(self.state.output, vocab))
