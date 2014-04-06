@@ -106,6 +106,8 @@ class Condition(object):
     def __getitem__(self, key):
         item = self.objects.get(key, None)
         if item is None:
+            if not key[0].isupper():
+                raise KeyError('Semantic pointers must begin with a capital')
             item = Symbol(key)
             self.objects[key] = item
         return item
