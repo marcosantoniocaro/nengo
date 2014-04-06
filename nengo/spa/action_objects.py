@@ -19,6 +19,8 @@ class Symbol(object):
         self.symbol = symbol
 
     def __add__(self, other):
+        if isinstance(other, (int, float)):
+            other = Symbol('%g' % other)
         if isinstance(other, Symbol):
             return Symbol('(%s + %s)' % (self.symbol, other.symbol))
         else:
@@ -40,6 +42,8 @@ class Symbol(object):
         elif isinstance(other, (int, float)):
             if other == 1:
                 return self
+            if self.symbol == '1':
+                return Symbol('%g' % other)
             return Symbol('(%s * %g)' % (self.symbol, other))
         else:
             return NotImplemented

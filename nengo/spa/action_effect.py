@@ -3,7 +3,15 @@ from action_objects import Symbol, Source
 
 
 class SourceWithAddition(Source):
+    """A Source that handles addition with other Sources and Symbols.
+
+    This is needed because action effects can do "motor = vision + memory + A"
+    but we do not support this for conditions, as it is not clear what
+    "dot(vision + memory + B, A)" should mean.
+    """
     def __add__(self, other):
+        if isinstance(other, (int, float)):
+            other = Symbol('%g' % other)
         if isinstance(other, (Symbol, Source)):
             return VectorList([self, other])
         else:
@@ -16,10 +24,15 @@ class SourceWithAddition(Source):
         return self.__add__(-other)
 
     def __rsub__(self, other):
-        return -self.__add__(other)
+        return (-self).__add__(other)
 
 
 class VectorList(object):
+    """A list of Symbols and Sources.
+
+    Used to handle multiple effects on the same module input, such as
+    "motor = vision + A"
+    """
     def __init__(self, items):
         self.items = items
 
@@ -28,6 +41,9 @@ class VectorList(object):
 
     def __rmul__(self, other):
         return self.__mul__(other)
+
+    def __div__(self, other):
+        return self.__mul__(1.0/other)
 
     def __add__(self, other):
         if isinstance(other, (int, float)):
@@ -39,8 +55,14 @@ class VectorList(object):
         else:
             return NotImplemented
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         return self.__add__(-other)
+
+    def __rsub__(self, other):
+        return (-self).__add__(other)
 
     def __neg__(self):
         return VectorList([-x for x in self.items])
@@ -50,18 +72,48 @@ class VectorList(object):
 
 
 class Effect(object):
+    """Parses an Action effect given a set of module outputs.
+
+    Parameters
+    ----------
+    sources : list of strings
+        The names of the module outputs that can be used as part of the
+        effect (i.e. the sources of vectors that can build up the effects)
+    effect: string
+        The action to implement.  This is a set of assignment statements
+        which can be parsed into a VectorList.
+
+    The following are valid effects:
+        "motor=A"
+        "motor=A*B, memory=vision+DOG"
+        "motor=0.5*(memory*A + vision*B)"
+    """
     def __init__(self, sources, effect):
-        self.objects = {}
+        self.objects = {}     # the list of known terms
+
+        # make terms for all the known module outputs
         for name in sources:
             self.objects[name] = SourceWithAddition(name)
+
+        # the effect would be parsed as "dict(%s)" % effect so that it
+        # will correctly handle the commas and naming of the module inputs
+        # the effects go to (such as "motor" in "motor=A").  However,
+        # that would cause a naming conflict if someone has a module
+        # called 'dict'.  So we use '__effect_dictionary' instead of 'dict'.
         self.objects['__effect_dictionary'] = dict
 
+        # do the parsing
         self.effect = eval('__effect_dictionary(%s)' % effect, {}, self)
+
+        # ensure that all the results are VectorLists
         for k, v in self.effect.items():
             if isinstance(v, (Symbol, Source)):
                 self.effect[k] = VectorList([v])
+            assert isinstance(self.effect[k], VectorList)
 
     def __getitem__(self, key):
+        # this gets used by the eval in the constructor to create new
+        # terms as needed
         item = self.objects.get(key, None)
         if item is None:
             if not key[0].isupper():
