@@ -14,6 +14,13 @@ def tuning_curves(ens, sim, eval_points=None):
     return eval_points, activities
 
 
+def encoders(ens, sim):
+    """Returns the simulator's current unscaled encoders of Ensemble ens."""
+    scaled_encoders = sim.signals[sim.model.sig_scaled_encoders[ens]]
+    return scaled_encoders / (
+        sim.data[ens.neurons].gain / ens.radius)[:, np.newaxis]
+
+
 def _similarity(encoders, index, rows, cols=1):
     """Helper function to compute similarity for one encoder.
 
