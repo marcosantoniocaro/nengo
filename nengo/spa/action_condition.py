@@ -2,19 +2,31 @@
 from action_objects import Symbol, Source
 
 
-class Scalar(object):
-    def __init__(self, scalar):
-        self.scalar = scalar
+class DotProduct(object):
+    """The dot product of a Source and a Source or a Source and a Symbol.
 
-    def __str__(self):
-        return '%g' % self.scalar
+    This represents a similarity measure for computing the utility of
+    and action.  It also maintains a scaling factor on the result,
+    so that the 0.5 in "0.5*DotProduct(Source('vision'), Symbol('DOG'))"
+    can be correctly tracked.
 
-
-class DotProduct(Scalar):
-    def __init__(self, item1, item2, scale):
+    This class is meant to be used with an eval-based parsing system in the
+    Condition class, so that the above DotProduct can also be created with
+    "0.5*dot(vision,DOG)".
+    """
+    def __init__(self, item1, item2, scale=1.0):
+        if not isinstance(item1, (Source, Symbol)):
+            raise TypeError('The first item in the dot product is not a ' +
+                            'semantic pointer or a spa.Module output')
+        if not isinstance(item2, (Source, Symbol)):
+            raise TypeError('The second item in the dot product is not a ' +
+                            'semantic pointer or a spa.Module output')
+        if not isinstance(item1, Source) and not isinstance(item2, Source):
+            raise TypeError('One of the two terms for the dot product ' +
+                            'must be a spa.Module output')
         self.item1 = item1
         self.item2 = item2
-        self.scale = 1.0
+        self.scale = scale
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):
@@ -22,13 +34,23 @@ class DotProduct(Scalar):
         else:
             return NotImplemented
 
-    def __add__(self, other):
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __div__(self, other):
         if isinstance(other, (int, float)):
-            other = Scalar(other)
-        if isinstance(other, Scalar):
-            return ScalarList([self, other])
+            return DotProduct(self.item1, self.item2, self.scale / other)
         else:
             return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, (int, float, DotProduct)):
+            return ConditionList([self, other])
+        else:
+            return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def __neg__(self):
         return DotProduct(self.item1, self.item2, -self.scale)
@@ -36,11 +58,8 @@ class DotProduct(Scalar):
     def __sub__(self, other):
         return self + (-other)
 
-    def __div__(self, other):
-        if isinstance(other, (int, float)):
-            return DotProduct(self.item1, self.item2, self.scale / other)
-        else:
-            return NotImplemented
+    def __rsub__(self, other):
+        return -self + other
 
     def __str__(self):
         if self.scale == 1.0:
@@ -50,39 +69,46 @@ class DotProduct(Scalar):
         return '%sdot(%s, %s)' % (scale_text, self.item1, self.item2)
 
 
-class ScalarList(object):
+
+class ConditionList(object):
+    """A list of DotProducts and scalars (ints or floats).
+
+    Addition and subtraction extend the list, and multiplication is
+    applied to all items in the list.
+    """
     def __init__(self, items):
         self.items = items
 
     def __mul__(self, other):
-        return ScalarList([dp*other for dp in self.items])
+        return ConditionList([dp*other for dp in self.items])
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __div__(self, other):
-        return ScalarList([dp/other for dp in self.items])
+        return ConditionList([dp/other for dp in self.items])
 
     def __add__(self, other):
-        if isinstance(other, (int, float)):
-            other = Scalar(other)
-        if isinstance(other, Scalar):
-            return ScalarList(self.items + [other])
+        if isinstance(other, (int, float, DotProduct)):
+            return ConditionList(self.items + [other])
         else:
             return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __rsub__(self, other):
+        return (-self).__add__(other)
+
+    def __neg__(self):
+        return ConditionList([-dp for dp in self.items])
 
     def __str__(self):
         return ' + '.join([str(x) for x in self.items])
 
-
-def dot(a, b):
-    if not isinstance(a, (Source, Symbol)):
-        raise TypeError('Cannot combine non-vector items')
-    if not isinstance(b, (Source, Symbol)):
-        raise TypeError('Cannot combine non-vector items')
-    if not isinstance(a, Source) and not isinstance(b, Source):
-        raise TypeError('Must do DotProduct on at least one source')
-    return DotProduct(a, b, 1.0)
 
 
 class Condition(object):
@@ -90,18 +116,15 @@ class Condition(object):
         self.objects = {}
         for name in sources:
             self.objects[name] = Source(name)
-        self.objects['dot'] = dot
+        self.objects['dot'] = DotProduct
 
         condition = condition.replace('\n', ' ')
         print condition
 
-        result = eval(condition, {}, self)
+        self.condition = eval(condition, {}, self)
 
-        if isinstance(result, (int, float)):
-            result = ScalarList([Scalar(result)])
-        elif isinstance(result, Scalar):
-            result = ScalarList([result])
-        self.condition = result
+        if isinstance(self.condition, (int, float, DotProduct)):
+            result = ConditionList([self.condition])
 
     def __getitem__(self, key):
         item = self.objects.get(key, None)
@@ -114,9 +137,3 @@ class Condition(object):
 
     def __str__(self):
         return str(self.condition)
-
-
-if __name__ == '__main__':
-    c = Condition(['state1', 'state2'],
-                  'dot(A*(B+C+2*D)*state1,Q)+0.5+dot(state2, state1)')
-    print c.condition

@@ -1,6 +1,6 @@
 import nengo
 from .module import Module
-from .action_condition import DotProduct, Scalar, Source
+from .action_condition import DotProduct, Source
 
 
 class BasalGanglia(nengo.networks.BasalGanglia, Module):
@@ -40,8 +40,8 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
                         assert isinstance(c.item2, Source)
                         self.add_dot_input(i, c.item2, c.item1, c.scale)
                 else:
-                    assert isinstance(c, Scalar)
-                    self.add_bias_input(i, c.scalar)
+                    assert isinstance(c, (int, float))
+                    self.add_bias_input(i, c)
 
     def add_bias_input(self, index, value):
         with self.spa:
