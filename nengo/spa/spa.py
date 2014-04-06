@@ -29,25 +29,22 @@ class SPA(nengo.Network):
     between these modules in ways that are aware of semantic pointers:
 
     class Example(spa.SPA):
-        class CorticalRules:
-            def rule1():
-                effect(b=a*'CAT')
-            def rule2():
-                effect(c=b*'~CAT')
-
         def __init__(self):
             spa.SPA.__init__(self)
             self.a = spa.Buffer(dimensions=8)
             self.b = spa.Buffer(dimensions=16)
             self.c = spa.Memory(dimensions=8)
-            self.cortical = spa.Cortical(CorticalRules)
+            self.cortical = spa.Cortical(spa.Actions(
+                'b=a*CAT', 'c=b*~CAT'))
     """
 
-    def __init__(self):
+    def __init__(self, rng=None):
         # the set of known modules
         self._modules = {}
         # the Vocabulary to use by default for a given dimensionality
         self._default_vocabs = {}
+        # the random number generator to use for Vocabularies
+        self.rng = rng
 
     def __setattr__(self, key, value):
         """A setattr that handles Modules being added specially.
@@ -73,7 +70,8 @@ class SPA(nengo.Network):
         This will create a new default Vocabulary if one doesn't exist.
         """
         if dimensions not in self._default_vocabs:
-            self._default_vocabs[dimensions] = vocab.Vocabulary(dimensions)
+            self._default_vocabs[dimensions] = vocab.Vocabulary(
+                dimensions, rng=self.rng)
         return self._default_vocabs[dimensions]
 
     def get_module_input(self, name):
