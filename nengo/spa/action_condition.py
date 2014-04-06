@@ -69,7 +69,6 @@ class DotProduct(object):
         return '%sdot(%s, %s)' % (scale_text, self.item1, self.item2)
 
 
-
 class ConditionList(object):
     """A list of DotProducts and scalars (ints or floats).
 
@@ -110,23 +109,40 @@ class ConditionList(object):
         return ' + '.join([str(x) for x in self.items])
 
 
-
 class Condition(object):
+    """Parses an Action condition given a set of module outputs.
+
+    Parameters
+    ----------
+    sources : list of strings
+        The names of the module outputs that can be used as part of the
+        condition
+    condition: string
+        The action condition to implement.  This defines the utility of the
+        action, given the state information from the module outputs.  The
+        simplest condition is "1" and they can get more complex, such as
+        "0.5*(dot(vision, DOG) + dot(memory, CAT*MOUSE)*3 - 1)".
+    """
     def __init__(self, sources, condition):
-        self.objects = {}
+        self.objects = {}   # the list of known terms
+
+        # make all the module outputs as known terms
         for name in sources:
             self.objects[name] = Source(name)
+        # handle the term 'dot(a, b)' to mean DotProduct(a, b)
         self.objects['dot'] = DotProduct
 
-        condition = condition.replace('\n', ' ')
-        print condition
-
+        # parse the condition
         self.condition = eval(condition, {}, self)
 
+        # ensure the result is a ConditionList, to make it easier for
+        # other systems to interpret the result
         if isinstance(self.condition, (int, float, DotProduct)):
-            result = ConditionList([self.condition])
+            self.condition = ConditionList([self.condition])
 
     def __getitem__(self, key):
+        # this gets used by the eval in the constructor to create new
+        # terms as needed
         item = self.objects.get(key, None)
         if item is None:
             if not key[0].isupper():

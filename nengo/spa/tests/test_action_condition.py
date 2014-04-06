@@ -99,6 +99,9 @@ def test_condition():
     c = Condition(['a', 'b'], '0.5*(2*dot(a, A)-dot(b,B))-2')
     assert str(c.condition) == 'dot(a, A) + -0.5 * dot(b, B) + -2'
 
+    c = Condition(['a'], '1')
+    assert str(c.condition) == '1'
+
     with pytest.raises(NameError):
         c = Condition(['a', 'b'], 'dot(c, C)')
 
