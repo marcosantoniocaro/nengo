@@ -1,6 +1,20 @@
 
 
 class Symbol(object):
+    """A set of semantic pointer symbols and associated math
+
+    This is an abstract semantic pointer (not associated with a particular
+    vocabulary or dimension).  It is just meant for keeping track of the
+    desired manipulations until such time as it is parsed with a particular
+    Vocabulary.
+
+    Its contents are a single string, and this string is manipulated via
+    standard mathematical operators (+ - * ~) for SemanticPointers.  The
+    result will always be able to be passed to a Vocabulary's parse()
+    method to get a valid SemanticPointer.
+
+    This is used by the spa.Action parsing system.
+    """
     def __init__(self, symbol):
         self.symbol = symbol
 
@@ -22,7 +36,7 @@ class Symbol(object):
                 return self
             if self.symbol == '1':
                 return other
-            return Symbol('(%s*%s)' % (self.symbol, other.symbol))
+            return Symbol('(%s * %s)' % (self.symbol, other.symbol))
         elif isinstance(other, (int, float)):
             if other == 1:
                 return self
@@ -50,9 +64,19 @@ class Symbol(object):
 
 
 class Source(object):
+    """A particular source of a vector for the Action system.
+
+    This will always refer to a particular named output from a spa.Module.
+    It also tracks a single Symbol which represents a desired transformation
+    from that output.  For example, Source('vision')*Symbol('VISION') will
+    result in a Source object for 'vision', but with transform set to the
+    Symbol('VISION').
+
+    This is used by the spa.Action parsing system.
+    """
     def __init__(self, name, transform=Symbol('1')):
-        self.name = name
-        self.transform = transform
+        self.name = name            # the name of the module output
+        self.transform = transform  # the Symbol for the transformation
 
     def __mul__(self, other):
         if isinstance(other, (Symbol, int, float)):
