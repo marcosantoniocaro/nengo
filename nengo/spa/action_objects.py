@@ -1,0 +1,74 @@
+
+
+class Symbol(object):
+    def __init__(self, symbol):
+        self.symbol = symbol
+
+    def __add__(self, other):
+        if isinstance(other, Symbol):
+            return Symbol('(%s + %s)' % (self.symbol, other.symbol))
+        else:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, Symbol):
+            return Symbol('(%s - %s)' % (self.symbol, other.symbol))
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(other, Symbol):
+            if other.symbol == '1':
+                return self
+            if self.symbol == '1':
+                return other
+            return Symbol('(%s*%s)' % (self.symbol, other.symbol))
+        elif isinstance(other, (int, float)):
+            if other == 1:
+                return self
+            return Symbol('(%s * %g)' % (self.symbol, other))
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __invert__(self):
+        if self.symbol.startswith('~'):
+            return Symbol(self.symbol[1:])
+        else:
+            return Symbol('~%s' % self.symbol)
+
+    def __neg__(self):
+        if self.symbol.startswith('-'):
+            return Symbol(self.symbol[1:])
+        else:
+            return Symbol('-%s' % self.symbol)
+
+    def __str__(self):
+        return self.symbol
+
+
+class Source(object):
+    def __init__(self, name, transform=Symbol('1')):
+        self.name = name
+        self.transform = transform
+
+    def __mul__(self, other):
+        if isinstance(other, (Symbol, int, float)):
+            return self.__class__(self.name, transform=self.transform*other)
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __neg__(self):
+        return self.__class__(self.name, transform=-self.transform)
+
+    def __str__(self):
+        if self.transform.symbol == '1':
+            trans_text = ''
+        else:
+            trans_text = '%s * ' % self.transform
+        return '%s%s' % (trans_text, self.name)

@@ -13,23 +13,17 @@ def test_spa_complex():
     dimensions = 64
 
     class ParseWrite(spa.SPA):
-        class Rules:
-            def verb():
-                match(vision='WRITE')
-                effect(verb=vision)
-            def noun():
-                match(vision='ONE+TWO+THREE')
-                effect(noun=vision)
-            def write():
-                match(vision='0.5*(NONE-WRITE-ONE-TWO-THREE)', phrase='0.5*WRITE*VERB')
-                effect(motor=phrase*'~NOUN')
+        actions = spa.Actions(
+            'dot(vision, WRITE) --> verb=vision',
+            'dot(vision, ONE+TWO+THREE) --> noun=vision',
+            '''0.5*(dot(NONE-WRITE-ONE-TWO-THREE, vision) +
+                    dot(phrase, WRITE*VERB))
+               --> motor=phrase*~NOUN''',
+            )
 
-        class CorticalRules:
-            def noun():
-                effect(phrase=noun*'NOUN')
-            def verb():
-                effect(phrase=verb*'VERB')
-
+        cortical_actions = spa.Actions(
+            'phrase=noun*NOUN + verb*VERB',
+            )
 
         def __init__(self):
             spa.SPA.__init__(self)
@@ -40,7 +34,7 @@ def test_spa_complex():
             self.noun = spa.Memory(dimensions=dimensions)
             self.verb = spa.Memory(dimensions=dimensions)
 
-            self.bg = spa.BasalGanglia(rules=self.Rules)
+            self.bg = spa.BasalGanglia(actions=self.actions)
             self.thal = spa.Thalamus(self.bg)
 
             def input_vision(t):
@@ -51,7 +45,7 @@ def test_spa_complex():
                 return sequence[index]
             self.input = spa.Input(vision=input_vision)
 
-            self.cortical = spa.Cortical(self.CorticalRules)
+            self.cortical = spa.Cortical(self.cortical_actions)
 
     with model:
         s = ParseWrite(label='SPA')
@@ -69,11 +63,11 @@ def test_spa_complex():
     import pylab as plt
     for i, module in enumerate('vision noun verb phrase motor'.split()):
         plt.subplot(5, 1, i+1)
-        plt.plot(np.dot(sim.data[probes[module]], s.get_module_output(module)[1].vectors.T))
+        plt.plot(np.dot(sim.data[probes[module]],
+                        s.get_module_output(module)[1].vectors.T))
         plt.legend(s.get_module_output(module)[1].keys, fontsize='xx-small')
         plt.ylabel(module)
-    plt.savefig('test_spa_complex.pdf')
-    plt.close()
+    plt.show()
 
 
 if __name__ == "__main__":

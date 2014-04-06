@@ -88,6 +88,17 @@ class SPA(nengo.Network):
             module, name = name.rsplit('_', 1)
             return self._modules[module].inputs[name]
 
+    def get_module_inputs(self):
+        for name, module in self._modules.items():
+            for input in module.inputs.keys():
+                if input == 'default':
+                    yield name
+                else:
+                    yield '%s_%s' % (name, input)
+
+    def get_input_vocab(self, name):
+        return get_module_input(name)[1]
+
     def get_module_output(self, name):
         """Return the object to connect into for the given name.
 
@@ -99,3 +110,14 @@ class SPA(nengo.Network):
         elif '_' in name:
             module, name = name.rsplit('_', 1)
             return self._modules[module].outputs[name]
+
+    def get_module_outputs(self):
+        for name, module in self._modules.items():
+            for output in module.outputs.keys():
+                if output == 'default':
+                    yield name
+                else:
+                    yield '%s_%s' % (name, output)
+
+    def get_output_vocab(self, name):
+        return get_module_output(name)[1]
