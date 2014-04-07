@@ -386,7 +386,7 @@ class HeteroAssociative(AutoAssociative):
 
     def __init__(self, neurons, max_capacity, d_key=None, initial_keys=None,
                  **kwargs):
-        super(HeteroAssociative, self).make(
+        super(HeteroAssociative, self).__init__(
             neurons, max_capacity, d_key, d_key, initial_keys, initial_keys,
             **kwargs)
         nengo.Connection(self.key, self.value, filter=None)
