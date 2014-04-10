@@ -496,6 +496,7 @@ class DotInc(Operator):
     """
 
     def __init__(self, A, X, Y, tag=None):
+        reshape_dot(A.value, X.value, Y.value, tag)
         self.A = A
         self.X = X
         self.Y = Y
@@ -530,6 +531,7 @@ class ProdUpdate(Operator):
     """
 
     def __init__(self, A, X, B, Y, tag=None):
+        reshape_dot(A.value, X.value, Y.value, tag)
         self.A = A
         self.X = X
         self.B = B
