@@ -56,7 +56,7 @@ class Thalamus(Module):
                              filter=self.pstc_inhibit)
 
             nengo.Connection(bias, actions.input, transform=np.ones((N, 1)),
-                             filter=None)
+                             filter=self.pstc_inhibit)
 
         with spa:
             nengo.Connection(self.bg.output, actions.input, filter=None)

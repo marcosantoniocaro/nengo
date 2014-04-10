@@ -1,7 +1,7 @@
 import numpy as np
 
 import nengo
-from nengo.networks import EnsembleArray
+from nengo.networks import Product
 from .module import Module
 from .action_condition import DotProduct, Source
 
@@ -63,21 +63,15 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
                                source1, dim, source2, vocab2.dimensions))
 
         with self.spa:
-            encoders = np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]],
-                                dtype='float') / np.sqrt(2)
-            encoders = np.tile(
-                encoders, ((self.n_compare / 4) + 1, 1))[:self.n_compare]
-            product = EnsembleArray(
-                nengo.LIF(self.n_compare), dim, dimensions=2,
-                encoders=encoders, radius=np.sqrt(2))
+            product = Product(nengo.LIF(self.n_compare), dim)
             nengo.Connection(
-                source1, product.input[::2], filter=self.input_filter)
+                source1, product.A, filter=self.input_filter)
             nengo.Connection(
-                source2, product.input[1::2], filter=self.input_filter)
-            product.add_output('product', lambda x: x[0] * x[1])
+                source2, product.B, filter=self.input_filter)
             nengo.Connection(
-                product.product, self.input[index],
-                transform=scale*np.ones((1, dim)), filter=self.input_filter)
+                product.output, self.input[index],
+                transform=product.dot_product_transform(),
+                filter=self.input_filter)
 
     def add_dot_input(self, index, source, symbol, scale):
         source, vocab = self.spa.get_module_output(source.name)
