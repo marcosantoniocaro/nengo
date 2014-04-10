@@ -26,7 +26,7 @@ class EnsembleArray(nengo.Network):
         self.add_output('output', function=None)
 
     @with_self
-    def add_output(self, name, function):
+    def add_output(self, name, function, **conn_kwargs):
         if function is None:
             function_d = self.dimensions_per_ensemble
         else:
@@ -44,7 +44,8 @@ class EnsembleArray(nengo.Network):
             nengo.Connection(e, output,
                              transform=trans,
                              filter=None,
-                             function=function)
+                             function=function,
+                             **conn_kwargs)
         return output
 
     @property

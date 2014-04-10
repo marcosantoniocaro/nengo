@@ -5,7 +5,7 @@ from nengo.utils.distributions import Uniform
 
 class DoubleLatch(nengo.Network):
 
-    def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=100,
+    def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=200,
                  speed=0.5, pstc_feedback=0.005, pstc_hard=0.02,
                  pstc_inhibit=0.001, neurons_inhibit=50, inhibit_amount=20,
                  latch_threshold=0.95, disable_latch_threshold=0.95,
@@ -20,7 +20,7 @@ class DoubleLatch(nengo.Network):
         n_neurons = neurons_per_dimension*subdimensions
         n_partitions = dimensions/subdimensions
         radius = kwargs.pop("radius", 1.0)
-        array_radius = np.sqrt(radius / n_partitions)
+        array_radius = radius # np.sqrt(radius / n_partitions)
         dot_radius = radius**2
         self.dimensions = dimensions
 

@@ -5,6 +5,7 @@ from nengo.networks import EnsembleArray
 
 
 class Product(nengo.Network):
+    """Computes the element-wise product of two equally sized vectors."""
 
     def __init__(self, neurons, dimensions, radius=1, **ens_args):
         self.A = nengo.Node(size_in=dimensions, label="A")
@@ -33,4 +34,5 @@ class Product(nengo.Network):
             self.product.product, self.output, filter=None)
 
     def dot_product_transform(self, scale=1.0):
+        """Returns a transform for output to compute the scaled dot product."""
         return scale*np.ones((1, self.dimensions))
