@@ -63,8 +63,8 @@ class Thalamus(Module):
         self.filter_to_gate = filter_to_gate
         self.filter_bg = filter_bg
 
-        self.gates = {}    # gating ensembles per action (created as needed)
-        self.channels = {} # channels to pass transformed data between modules
+        self.gates = {}     # gating ensembles per action (created as needed)
+        self.channels = {}  # channels to pass transformed data between modules
 
     def on_add(self, spa):
         Module.on_add(self, spa)
@@ -76,7 +76,7 @@ class Thalamus(Module):
             # An EnsembleArray to store which action is selected
             self.actions = nengo.networks.EnsembleArray(
                 nengo.LIF(self.neurons_action),
-                N, dimensions=1, encoders = [[1.0]] * self.neurons_action,
+                N, dimensions=1, encoders=[[1.0]] * self.neurons_action,
                 intercepts=nengo.objects.Uniform(self.threshold_action, 1),
                 label='actions')
 
@@ -202,7 +202,8 @@ class Thalamus(Module):
             # connect source to target
             nengo.Connection(source, channel.input, transform=t,
                              filter=self.filter_channel)
-            nengo.Connection(channel.output, target, filter=self.filter_channel)
+            nengo.Connection(channel.output, target,
+                             filter=self.filter_channel)
 
 
 """
