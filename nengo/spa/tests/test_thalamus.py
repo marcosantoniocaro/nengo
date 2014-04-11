@@ -9,11 +9,12 @@ def test_thalamus():
         def __init__(self):
             spa.SPA.__init__(self, rng=np.random.RandomState(2))
             self.vision = spa.Buffer(dimensions=16)
+            self.vision2 = spa.Buffer(dimensions=16)
             self.motor = spa.Buffer(dimensions=16)
             self.motor2 = spa.Buffer(dimensions=32)
 
             actions = spa.Actions(
-                'dot(vision, A) --> motor=A',
+                'dot(vision, A) --> motor=A, motor2=vision*vision2',
                 'dot(vision, B) --> motor=vision, motor2=vision*A*~B',
                 )
             self.bg = spa.BasalGanglia(actions)
@@ -26,7 +27,7 @@ def test_thalamus():
                     return 'B'
                 else:
                     return '0'
-            self.input = spa.Input(vision=input)
+            self.input = spa.Input(vision=input, vision2='B*~A')
 
     model = SPA()
 
@@ -49,6 +50,8 @@ def test_thalamus():
     assert -0.2 < data[1, 100] < 0.2
     assert 0.6 < data2[0, 299] < 0.8
     assert -0.2 < data2[0, 100] < 0.2
+    assert -0.2 < data2[1, 299] < 0.2
+    assert 0.4 < data2[1, 100] < 0.6
 
 
 def test_errors():

@@ -11,6 +11,16 @@ x = SourceWithAddition('x')
 y = SourceWithAddition('y')
 
 
+def test_combined_source():
+    assert str(x * y) == '((x) * (y)) * 1'
+    assert str(x * 2 * y) == '((2 * x) * (y)) * 1'
+    assert str((x * y) * 2) == '((x) * (y)) * 2'
+    assert str((x * y) * A) == '((x) * (y)) * A'
+    assert str((-x * A) * y) == '(((-1 * A) * x) * (y)) * 1'
+    assert str(x * y + x) == '((x) * (y)) * 1 + x'
+    assert str(x * y + y * x) == '((x) * (y)) * 1 + ((y) * (x)) * 1'
+
+
 def test_source_addition():
     assert str(x + y) == 'x + y'
     assert str(x + A) == 'x + A'

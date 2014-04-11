@@ -1,7 +1,7 @@
 import nengo
 
 from .module import Module
-from .action_effect import Symbol, Source
+from .action_effect import Symbol, Source, CombinedSource
 
 import numpy as np
 
@@ -105,6 +105,8 @@ class Thalamus(Module):
                     elif isinstance(effect, Source):
                         self.add_route_effect(i, name, effect.name,
                                               effect.transform.symbol)
+                    elif isinstance(effect, CombinedSource):
+                        self.add_conv_effect(i, name, effect)
                     else:
                         raise NotImplementedError('Cannot handle %s' % effect)
 
@@ -205,52 +207,47 @@ class Thalamus(Module):
             nengo.Connection(channel.output, target,
                              filter=self.filter_channel)
 
+    def add_conv_effect(self, index, target_name, effect):
+        source1 = effect.source1
+        source2 = effect.source2
 
-"""
-if hasattr(source, 'convolve'):
-    # TODO: this is an insanely bizarre computation to have to do
-    #   whenever you want to use a CircConv network.  The parameter
-    #   should be changed to specify neurons per ensemble
-    n_neurons_d = self.neurons_cconv * (
-        2*dim - (2 if dim % 2 == 0 else 1))
-    channel = nengo.networks.CircularConvolution(
-                    nengo.LIF(n_neurons_d), dim,
-                    invert_a = source.invert,
-                    invert_b = source.convolve.invert,
-                    label='cconv_%d_%s'%(index, target.name))
+        gate = self.get_gate(index)
 
-    nengo.Connection(channel.output, target.obj, filter=self.channel_pstc)
+        target, target_vocab = self.spa.get_module_input(target_name)
+        s1_output, s1_vocab = self.spa.get_module_output(source1.name)
+        s2_output, s2_vocab = self.spa.get_module_output(source2.name)
 
-    transform = [[-1]]*(self.neurons_cconv)
-    for e in channel.ensemble.ensembles:
-        nengo.Connection(gate, e.neurons,
-                 transform=transform, filter=self.pstc_inhibit)
+        with self:
+            channel = nengo.networks.CircularConvolution(
+                nengo.LIF(self.neurons_cconv), s1_vocab.dimensions,
+                invert_a = False,  #TODO: handle ~ for Source objects
+                invert_b = False,
+                label='cconv_%d_%s'%(index, str(effect)))
 
-    # connect first input
-    if target.vocab is source.vocab:
-        transform = 1
-    else:
-        transform = source.vocab.transform_to(target.vocab)
+            # inhibit the channel when the action is not chosen
+            inhibit = [[-1]]*(self.neurons_cconv)
+            for e in channel.ensemble.ensembles:
+                nengo.Connection(gate, e.neurons, transform=inhibit,
+                                 filter=self.filter_inhibit)
 
-    if hasattr(source, 'transform'):
-        t2 = source.vocab.parse(source.transform).get_convolution_matrix()
-        transform = np.dot(transform, t2)
+        with self.spa:
+            # compute the requested transform
+            t = s1_vocab.parse(str(effect.transform)).get_convolution_matrix()
+            # handle conversion between different Vocabularies
+            if target_vocab is not s1_vocab:
+                t = np.dot(s1_vocab.transform_to(target_vocab), t)
 
-    nengo.Connection(source.obj, channel.A,
-                     transform=transform, filter=self.channel_pstc)
+            nengo.Connection(channel.output, target, transform=t,
+                             filter=self.filter_channel)
 
-    # connect second input
-    if target.vocab is source.convolve.vocab:
-        transform = 1
-    else:
-        transform = source.convolve.vocab.transform_to(target.vocab)
+            t1 = s1_vocab.parse(
+                source1.transform.symbol).get_convolution_matrix()
+            nengo.Connection(s1_output, channel.A, transform=t1,
+                             filter=self.filter_channel)
 
-    if hasattr(source.convolve, 'transform'):
-        t2 = source.convolve.vocab.parse(source.convolve.transform).
-                  get_convolution_matrix()
-        transform = np.dot(transform, t2)
-
-    nengo.Connection(source.convolve.obj, channel.B,
-                     transform=transform, filter=self.channel_pstc)
-
-                """
+            t2 = s2_vocab.parse(
+                source2.transform.symbol).get_convolution_matrix()
+            if s1_vocab is not s2_vocab:
+                t2 = np.dot(s2_vocab.transform_to(s1_vocab), t2)
+            nengo.Connection(s2_output, channel.B, transform=t2,
+                             filter=self.filter_channel)
