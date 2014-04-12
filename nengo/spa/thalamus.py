@@ -12,7 +12,7 @@ class Thalamus(Module):
                  neurons_per_channel_dim=50, channel_subdim=16,
                  channel_pstc=0.01, neurons_cconv=200,
                  neurons_gate=40, gate_threshold=0.3,
-                 pstc_to_gate=0.002):
+                 pstc_to_gate=0.002, pstc_bg=0.008):
         Module.__init__(self)
         self.bg = bg
         self.neurons_per_rule = neurons_per_rule
@@ -27,6 +27,7 @@ class Thalamus(Module):
         self.neurons_cconv = neurons_cconv
         self.gate_threshold = gate_threshold
         self.pstc_to_gate = pstc_to_gate
+        self.pstc_bg = pstc_bg
 
         self.gates = {}
         self.channels = {}
@@ -39,14 +40,11 @@ class Thalamus(Module):
 
         with self:
             actions = nengo.networks.EnsembleArray(
-                nengo.LIF(self.neurons_per_rule),
-                N, dimensions=1,
+                nengo.LIF(self.neurons_per_rule), N,
                 intercepts=nengo.objects.Uniform(self.rule_threshold, 1),
+                encoders=[[1.0]] * self.neurons_per_rule,
                 label='actions')
             self.actions = actions
-
-            for ens in actions.ensembles:
-                ens.encoders = [[1.0]] * self.neurons_per_rule
 
             bias = nengo.Node(output=[1], label='bias')
             self.bias = bias
@@ -59,7 +57,8 @@ class Thalamus(Module):
                              filter=self.pstc_inhibit)
 
         with spa:
-            nengo.Connection(self.bg.output, actions.input, filter=None)
+            nengo.Connection(self.bg.output, actions.input,
+                             filter=self.pstc_bg)
 
         for i, action in enumerate(self.bg.actions.actions):
             for name, effects in action.effect.effect.items():

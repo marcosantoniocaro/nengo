@@ -1227,13 +1227,13 @@ class Builder(object):
 
     @builds(nengo.objects.PES)
     def build_pes(self, pes, conn):
-        activities = self.model.sig_out[conn.pre]
+        pre_filtered = self.model.sig_out[conn.pre]  # TODO: Is this filtered?
         error = self.model.sig_out[pes.error_connection]
         scaled_error = Signal(np.zeros(error.shape), name="PES:scaled_error")
         shaped_scaled_error = SignalView(scaled_error, (error.size, 1), (1, 1),
                                          0, name="PES:shaped_scaled_error")
-        shaped_activities = SignalView(activities, (1, activities.size),
-                                       (1, 1), 0, name="PES:shaped_activites")
+        shaped_activities = SignalView(pre_filtered, (1, pre_filtered.size),
+                                       (1, 1), 0, name="PES:shaped_pre")
 
         decoders = self.model.sig_decoder[conn]
         lr_signal = Signal(pes.learning_rate, name="PES:learning_rate")
@@ -1249,12 +1249,13 @@ class Builder(object):
     @builds(nengo.Voja)
     def build_voja(self, oja, conn):
         post_activities = self.model.sig_out[conn.post]
+        # TODO: Is this double filtering?
         post_filtered = self.filtered_signal(post_activities, oja.filter)
 
         if oja.learning_connection:
             learning_signal = self.model.sig_out[oja.learning_connection]
         else:
-            learning_signal = Signal(1, name="Oja:one")
+            learning_signal = Signal(1, name="Voja:one")
 
         self.model.operators.append(
             SimVoja(post_filtered=post_filtered,

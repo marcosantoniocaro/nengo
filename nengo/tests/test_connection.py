@@ -289,7 +289,7 @@ def test_voja_learning_rule(Simulator, nl_nodirect):
     # to learned_vector, and that the rest stayed the same.
     encoders_after = encoders(a, sim)
     assert np.allclose(encoders_after[:num_change],
-                       [learned_vector] * num_change, atol=0.01)
+                       [learned_vector] * num_change, atol=0.02)
     assert np.allclose(encoders_after[num_change:],
                        encoders_before[num_change:])
 

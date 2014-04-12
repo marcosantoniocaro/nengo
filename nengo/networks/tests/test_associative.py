@@ -69,8 +69,8 @@ def test_autoaossiciatve(Simulator, nl_nodirect):
             nengo.Connection(key, model.key)
             nengo.Connection(value, model.value)
             nengo.Connection(learning, model.learning)
-            output_p = nengo.Probe(model.output, filter=0.03)
-            has_key_p = nengo.Probe(model.has_key, filter=0.03)
+            output_p = nengo.Probe(model.output, filter=0.04)
+            has_key_p = nengo.Probe(model.has_key, filter=0.04)
             dopamine_p = nengo.Probe(model.dopamine, filter=0.03)
         return model, output_p, has_key_p, dopamine_p
 
@@ -95,9 +95,9 @@ def test_autoaossiciatve(Simulator, nl_nodirect):
         output = np.average(sim.data[output_p][t_test], axis=0)
         has_key = np.average(sim.data[has_key_p][t_test], axis=0)
         dopamine = np.average(sim.data[dopamine_p][t_test], axis=0)
-        assert np.allclose(value, output, atol=0.05)
-        assert np.allclose([1], has_key, atol=0.02)
-        assert np.allclose(dopamine, 0, atol=0.05)
+        assert np.allclose(value, output, atol=0.07)
+        assert np.allclose([1], has_key, atol=0.03)
+        assert np.allclose(dopamine, 0, atol=0.06)
 
         # Check that these values are represented better than without Voja's
         # rule, except for the most recent one since there's effectively no

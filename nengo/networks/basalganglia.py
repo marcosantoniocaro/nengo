@@ -27,8 +27,8 @@ class BasalGanglia(nengo.Network):
     le = 0.2
     lg = 0.2
 
-    def __init__(self, dimensions, n_neurons_per_ensemble=100, radius=1.0,
-                 tau_ampa=0.002, tau_gaba=0.008, output_weight=-1):
+    def __init__(self, dimensions, n_neurons_per_ensemble=100, radius=1.5,
+                 tau_ampa=0.002, tau_gaba=0.008, output_weight=-3):
         encoders = np.ones((n_neurons_per_ensemble, 1))
         ea_params = {
             'neurons': nengo.LIF(n_neurons_per_ensemble),
@@ -95,7 +95,7 @@ class BasalGanglia(nengo.Network):
         # connect GPi to output (inhibitory)
         gpi_output = gpi.add_output(
             'func_gpi', self.gpi, decoder_solver=decoder_solver)
-        nengo.Connection(gpi_output, self.output, filter=tau_gaba,
+        nengo.Connection(gpi_output, self.output, filter=None,
                          transform=output_weight)
 
     @classmethod

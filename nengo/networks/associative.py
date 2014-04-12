@@ -86,10 +86,6 @@ class AutoAssociative(nengo.Network):
         Number of neurons to use in the error ensemble. Defaults to 200.
     voja_learning_rate : float, optional
         Learning rate for Voja's rule. Defaults to 1e-2.
-    voja_filter : float, optional
-        Post-synaptic filter on the memory layer's activity as input to
-        Voja's rule. Defaults to 0.001. Determines how quickly the network
-        will adapt to new keys.
     pes_learning_rate : float, optional
         Learning rate for the PES rule. Defaults to 1e-4. Determines how
         quickly the netork will associate a value with the given key.
@@ -130,13 +126,9 @@ class AutoAssociative(nengo.Network):
     output : Node
         Output node for the value which corresponds to the current key in
         memory. If the key doesn't exist, then the value will be arbitrary.
-        Note that when connecting from output, you should use filter=None,
-        otherwise you will get an additional layer of filtering.
     has_key : Node
         Outputs whether the dictionary has been shown this key while
         learning was turned on.
-        Note that when connecting from has_key, you should use filter=None,
-        otherwise you will get an additional layer of filtering.
     learning : Node
         If always_learn is False (the default), then this is an input node
         which scales the learning_rate (for Voja) and uninhibits the error
@@ -178,7 +170,7 @@ class AutoAssociative(nengo.Network):
 
     def __init__(self, neurons, max_capacity, d_key=None, d_value=None,
                  initial_keys=None, initial_values=None, default_value=None,
-                 n_error=200, voja_learning_rate=1e-2, voja_filter=0.001,
+                 n_error=200, voja_learning_rate=1e-2,
                  pes_learning_rate=1e-4, intercept_spread=0.05,
                  n_dopamine=50, dopamine_strength=20, dopamine_filter=0.001,
                  dopamine_intercepts=Uniform(0.1, 1), always_learn=False,
@@ -203,11 +195,13 @@ class AutoAssociative(nengo.Network):
                 raise ValueError("d_key must be specified if initial_keys "
                                    "is not specified")
             d_key = len(initial_keys[0])
+        self.d_key = d_key
         if d_value is None:
             if not len(initial_values):
                 raise ValueError("d_value must be specified if "
                                    "initial_values is not specified")
             d_value = len(initial_values[0])
+        self.d_value = d_value
 
         # Set initial values to the default value if not given
         if default_value is None:
@@ -223,11 +217,11 @@ class AutoAssociative(nengo.Network):
         # Create input and output passthrough nodes
         self.key = nengo.Node(size_in=d_key, label="key")
         self.value = nengo.Node(size_in=d_value, label="value")
-        self.output = nengo.Node(size_in=d_value, label="output")
-        self.has_key = nengo.Node(size_in=1, label="has_key")
         self.learning = nengo.Node(
             size_in=1, output=lambda t, x: (x, 1)[always_learn],
             label="learning")
+        self.output = nengo.Node(size_in=d_value, label="output")
+        self.has_key = nengo.Node(size_in=1, label="has_key")
 
         # Create node/ensembles for scaling the learning rate
         # TODO: Separate inputs for Voja learning and PES learning.
@@ -267,13 +261,13 @@ class AutoAssociative(nengo.Network):
             self.value_error, learning_rate=pes_learning_rate,
             label="learn_value")
         nengo.Connection(
-            self.memory, self.output, eval_points=encoders,
+            self.memory, self.output, eval_points=encoders, #filter=None,
             function=value_function, learning_rule=self.value_pes)
         self.has_key_pes = nengo.PES(
             self.has_key_error, learning_rate=pes_learning_rate,
             label="learn_has_key")
         nengo.Connection(
-            self.memory, self.has_key, eval_points=encoders,
+            self.memory, self.has_key, eval_points=encoders, #filter=None,
             function=has_key_function, learning_rule=self.has_key_pes)
 
         # Connect the learning signal to the error populations
@@ -288,7 +282,7 @@ class AutoAssociative(nengo.Network):
 
         # Connect the key Node to the memory Ensemble with voja's rule
         self.voja = (nengo.Voja(learning_rate=voja_learning_rate,
-                                learning=self.dopamine, filter=voja_filter,
+                                learning=self.dopamine,
                                 learning_filter=dopamine_filter,
                                 label="learn_key")
                      if not voja_disable else None)
@@ -298,10 +292,10 @@ class AutoAssociative(nengo.Network):
         # Compute the value_error and has_key_error
         nengo.Connection(self.value, self.value_error, filter=None)
         nengo.Connection(
-            self.output, self.value_error, filter=None, transform=-1)
+            self.output, self.value_error, transform=-1)
         nengo.Connection(nengo.Node(output=[1]), self.has_key_error)
         nengo.Connection(
-            self.has_key, self.has_key_error, filter=None, transform=-1)
+            self.has_key, self.has_key_error, transform=-1)
 
     @classmethod
     def _initial_memory(cls, n, d_key, initial_keys, initial_values,
@@ -389,4 +383,6 @@ class HeteroAssociative(AutoAssociative):
         super(HeteroAssociative, self).__init__(
             neurons, max_capacity, d_key, d_key, initial_keys, initial_keys,
             **kwargs)
+        assert self.d_key == self.d_value
+        self.dimension = self.d_key
         nengo.Connection(self.key, self.value, filter=None)

@@ -1,6 +1,7 @@
 from .spa import SPA
 from .memory import Memory
 from .doublelatch import DoubleLatch
+from .cleanup import Cleanup
 from .buffer import Buffer
 from .basalganglia import BasalGanglia
 from .thalamus import Thalamus

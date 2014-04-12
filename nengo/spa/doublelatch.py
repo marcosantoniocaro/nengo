@@ -4,8 +4,7 @@ import nengo
 from nengo.spa.module import Module
 
 class DoubleLatch(nengo.networks.DoubleLatch, Module):
-    """TODO
-    """
+    """TODO"""
     def __init__(self, *args, **kwargs):
         vocab = kwargs.pop('vocab', None)
         super(DoubleLatch, self).__init__(*args, **kwargs)

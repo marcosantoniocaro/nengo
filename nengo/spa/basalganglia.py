@@ -7,15 +7,15 @@ from .action_condition import DotProduct, Source
 
 
 class BasalGanglia(nengo.networks.BasalGanglia, Module):
-    def __init__(self, actions, input_filter=0.002, n_compare=50):
+    def __init__(self, actions, input_filter=0.002, n_compare=50, **kwargs):
         self.actions = actions
         self.input_filter = input_filter
         self.bias = None
         self.n_compare = n_compare
         Module.__init__(self)
 
-        nengo.networks.BasalGanglia.__init__(self,
-                                             dimensions=self.actions.count)
+        nengo.networks.BasalGanglia.__init__(
+            self, dimensions=self.actions.count, **kwargs)
 
     def get_bias_node(self):
         if self.bias is None:

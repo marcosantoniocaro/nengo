@@ -795,7 +795,7 @@ class Voja(LearningRule):
     Parameters
     ----------
     filter : float, optional
-        Filter to apply to the post-synaptic activity. Defaults to 0.005.
+        Filter to apply to the post-synaptic activity. Defaults to 0.001.
     learning_rate : float, optional
         A scalar indicating the rate at which encoders will be adjusted.
         Defaults to 1e-5.
@@ -822,7 +822,7 @@ class Voja(LearningRule):
         or None if learning was None.
     """
 
-    def __init__(self, filter=0.005, learning_rate=1e-5, learning=None,
+    def __init__(self, filter=0.001, learning_rate=1e-5, learning=None,
                  learning_filter=0.001, label=None):
         self.filter = filter
         self.learning_rate = learning_rate
