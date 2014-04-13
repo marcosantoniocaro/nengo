@@ -26,7 +26,7 @@ class Vocabulary(object):
         When randomly generating pointers, ensure that the cosine of the
         angle between the new pointer and all existing pointers is less
         than this amount.  If the system is unable to find such a pointer
-        after 100 tries, a warning message is printed.
+        after 1000 tries, a warning message is printed.
     include_pairs : bool, optional
         Whether to keep track of all pairs of pointers as well.  This
         is helpful for determining if a vector is similar to A*B (in
@@ -74,7 +74,7 @@ class Vocabulary(object):
         self._identity = None
         self.rng = rng
 
-    def create_pointer(self, attempts=100, unitary=False):
+    def create_pointer(self, attempts=1000, unitary=False):
         """Create a new semantic pointer.
 
         This will take into account the randomize and max_similarity
@@ -84,7 +84,7 @@ class Vocabulary(object):
             count = 0
             p = pointer.SemanticPointer(self.dimensions, rng=self.rng)
             if self.vectors.shape[0] > 0:
-                while count < 100:
+                while count < attempts:
                     similarity = np.dot(self.vectors, p.v)
                     if max(similarity) < self.max_similarity:
                         break
