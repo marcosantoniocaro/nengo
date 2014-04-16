@@ -86,6 +86,8 @@ class AutoAssociative(nengo.Network):
         Number of neurons to use in the error ensemble. Defaults to 200.
     voja_learning_rate : float, optional
         Learning rate for Voja's rule. Defaults to 1e-2.
+    voja_filter : float, optional
+        Post-synaptic filter for Voja's rule. Defaults to 0.005.
     pes_learning_rate : float, optional
         Learning rate for the PES rule. Defaults to 1e-4. Determines how
         quickly the netork will associate a value with the given key.
@@ -106,10 +108,10 @@ class AutoAssociative(nengo.Network):
         Distribution of intercepts for dopamine ensembles. Defaults to
         Uniform(0.1, 1), which ensures that the neurons do not fire when
         learning = 0.
-    always_learn : bool, optional
-        Specifies whether the memory should always be learning from the given
-        keys and values. Defaults to False. Connect to the learning Node to
-        make this dynamic (refer to the learning attribute documentation).
+    use_all_encoders : bool, optional
+        If initial_keys are given, then all of the encoders will be
+        initialized to the given keys. This should be used whenever the set
+        of keys is static. Defaults to False.
     voja_disable : bool, optional
         Set to True to disable Voja's rule. This will not break the dict, but
         it will impact recall accuracy, since some keys may share encoders.
@@ -130,10 +132,9 @@ class AutoAssociative(nengo.Network):
         Outputs whether the dictionary has been shown this key while
         learning was turned on.
     learning : Node
-        If always_learn is False (the default), then this is an input node
-        which scales the learning_rate (for Voja) and uninhibits the error
-        signal (for PES). Set this signal to 0 when you want learning to be
-        turned off (so that lookups can be done regardless of the current
+        Input node which scales the learning_rate (for Voja) and uninhibits the
+        error signal (for PES). Set this signal to 0 when you want learning to
+        be turned off (so that lookups can be done regardless of the current
         value), and to 1 when you want learning to be on (to store
         associations). Note: Accuracy may be slightly better if you can shut
         off learning a couple ms before lookup begins (not simultaneously),
@@ -170,10 +171,10 @@ class AutoAssociative(nengo.Network):
 
     def __init__(self, neurons, max_capacity, d_key=None, d_value=None,
                  initial_keys=None, initial_values=None, default_value=None,
-                 n_error=200, voja_learning_rate=1e-2,
+                 n_error=200, voja_learning_rate=1e-2, voja_filter=0.005,
                  pes_learning_rate=1e-4, intercept_spread=0.05,
                  n_dopamine=50, dopamine_strength=20, dopamine_filter=0.001,
-                 dopamine_intercepts=Uniform(0.1, 1), always_learn=False,
+                 dopamine_intercepts=Uniform(0.1, 1), use_all_encoders=False,
                  voja_disable=False):
         if max_capacity <= 0:
             raise ValueError("max_capacity (%d) must be positive" %
@@ -217,9 +218,7 @@ class AutoAssociative(nengo.Network):
         # Create input and output passthrough nodes
         self.key = nengo.Node(size_in=d_key, label="key")
         self.value = nengo.Node(size_in=d_value, label="value")
-        self.learning = nengo.Node(
-            size_in=1, output=lambda t, x: (x, 1)[always_learn],
-            label="learning")
+        self.learning = nengo.Node(size_in=1, label="learning")
         self.output = nengo.Node(size_in=d_value, label="output")
         self.has_key = nengo.Node(size_in=1, label="has_key")
 
@@ -240,7 +239,8 @@ class AutoAssociative(nengo.Network):
             d_key, 1 / float(max_capacity))
         encoders, value_function, has_key_function = self._initial_memory(
             neurons.n_neurons, d_key,
-            initial_keys, initial_values, default_value, self.intercept)
+            initial_keys, initial_values, default_value, self.intercept,
+            use_all_encoders)
         intercepts = Uniform(
             self.intercept - intercept_spread,
             min(self.intercept + intercept_spread, 1.0))
@@ -281,7 +281,8 @@ class AutoAssociative(nengo.Network):
                       amount=dopamine_strength, filter=dopamine_filter)
 
         # Connect the key Node to the memory Ensemble with voja's rule
-        self.voja = (nengo.Voja(learning_rate=voja_learning_rate,
+        self.voja = (nengo.Voja(filter=voja_filter,
+                                learning_rate=voja_learning_rate,
                                 learning=self.dopamine,
                                 learning_filter=dopamine_filter,
                                 label="learn_key")
@@ -299,11 +300,15 @@ class AutoAssociative(nengo.Network):
 
     @classmethod
     def _initial_memory(cls, n, d_key, initial_keys, initial_values,
-                        default_value, intercept):
+                        default_value, intercept, use_all_encoders):
         """Returns the initial encoders and functions to decode."""
-        # Randomly generate encoders and then set them to the initial_keys, by
-        # finding the first key which stimulates an encoder, for each encoder.
-        encoders = UniformHypersphere(d_key, surface=True).sample(n)
+        if use_all_encoders:
+            if not len(initial_keys):
+                raise ValueError("Must provide initial_keys if use_all_encoders==True")
+            encoders = np.tile(initial_keys, (n/len(initial_keys) + 1, 1))[:n]
+        else:
+            encoders = UniformHypersphere(d_key, surface=True).sample(n)
+        # Find the first key which stimulates an encoder, for each encoder
         encoder_to_value = dict()
         encoder_to_has_key = dict()
         for e in encoders:

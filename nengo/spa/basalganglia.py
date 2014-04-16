@@ -64,13 +64,11 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
 
         with self.spa:
             product = Product(nengo.LIF(self.n_compare), dim)
-            nengo.Connection(
-                source1, product.A, filter=self.input_filter)
-            nengo.Connection(
-                source2, product.B, filter=self.input_filter)
+            nengo.Connection(source1, product.A)
+            nengo.Connection(source2, product.B)
             nengo.Connection(
                 product.output, self.input[index],
-                transform=product.dot_product_transform(),
+                transform=product.dot_product_transform(scale),
                 filter=self.input_filter)
 
     def add_dot_input(self, index, source, symbol, scale):

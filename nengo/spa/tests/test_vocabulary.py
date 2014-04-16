@@ -81,13 +81,13 @@ def test_text():
     assert v.text([0]*64) == '0.00F'
     assert v.text(v['D'].v) == '1.00D'
 
+
 def test_capital():
     v = Vocabulary(16)
     with pytest.raises(KeyError):
         v.parse('a')
     with pytest.raises(KeyError):
         v.parse('A+B+C+a')
-
 
 
 def test_transform():
@@ -117,6 +117,21 @@ def test_prob_cleanup():
     assert 0.999 > v.prob_cleanup(0.4, 1000) > 0.997
     assert 0.99 > v.prob_cleanup(0.4, 10000) > 0.97
     assert 0.9 > v.prob_cleanup(0.4, 100000) > 0.8
+
+
+def test_orthonormal_generation():
+    dims = 16
+    n = 2*dims
+    v = Vocabulary(dims)
+    for i in range(n):
+        v.parse('V_%d' % i)
+
+    sims = np.dot(v.vectors, v.vectors.T).flatten()
+
+    # Each of the n vectors will have a negative pair giving -1, as well as
+    # itself, giving +1. The rest of the similarities should be 0.
+    expected =  [-1]*n + [0]*(n*(n - 2)) + [1]*n
+    print np.allclose(sorted(list(sims)), expected)
 
 
 if __name__ == '__main__':

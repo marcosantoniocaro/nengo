@@ -10,8 +10,8 @@ class DoubleLatch(nengo.Network):
     def __init__(self, dimensions, neurons_per_dimension=100, speed=1.0,
                  pstc_state=0.05, pstc_hard=0.02, pstc_latched=0.005,
                  pstc_inhibit=0.001, neurons_inhibit=100, inhibit_amount=20,
-                 latch_threshold=0.95, disable_latch_threshold=0.99,
-                 disable_latch_gain=2, **kwargs):
+                 latch_threshold=0.95, double_latch_threshold=0.95,
+                 double_latch_gain=3, **kwargs):
         super(DoubleLatch, self).__init__(**kwargs)
 
         radius = kwargs.pop("radius", 1.0)
@@ -47,7 +47,7 @@ class DoubleLatch(nengo.Network):
         self.hard_latch = nengo.Ensemble(
             nengo.LIF(neurons_inhibit), dimensions=1, radius=dot_radius,
             encoders=[[1]]*neurons_inhibit,
-            intercepts=Uniform(disable_latch_threshold, 1),
+            intercepts=Uniform(double_latch_threshold, 1),
             label="hard_latch")
         self.inhibit_latched = nengo.Ensemble(
             nengo.LIF(neurons_inhibit), dimensions=1,
@@ -79,7 +79,7 @@ class DoubleLatch(nengo.Network):
 
         nengo.Connection(self.error, self.product.A, filter=None)
         nengo.Connection(self.error, self.product.B, filter=None)
-        nengo.Connection(self.product.output, self.dot,
+        nengo.Connection(self.product.output, self.dot, filter=0.008,
                          transform=self.product.dot_product_transform(-1))
 
         nengo.Connection(nengo.Node(output=[1]), self.inhibit_low)
@@ -87,7 +87,7 @@ class DoubleLatch(nengo.Network):
         nengo.Connection(nengo.Node(output=[1]), self.dot, filter=pstc_hard)
         nengo.Connection(self.dot, self.hard_latch, filter=pstc_hard)
         nengo.Connection(self.hard_latch, self.hard_latch,
-                         transform=disable_latch_gain, filter=pstc_hard,
+                         transform=double_latch_gain, filter=pstc_hard,
                          eval_points=[[1]])
         nengo.Connection(self.inhibit_low.neurons, self.hard_latch.neurons,
                          filter=pstc_inhibit,

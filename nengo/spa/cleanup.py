@@ -8,11 +8,13 @@ from nengo.spa.module import Module
 class Cleanup(HeteroAssociative, Module):
     """TODO"""
 
-    def __init__(self, vocab, neurons_per_pointer=50, extra=10, **kwargs):
+    def __init__(self, vocab, neurons_per_pointer=100, intercept=0.1,
+                 use_all_encoders=True, **kwargs):
         keys = vocab.vectors
 
         super(Cleanup, self).__init__(
-            LIF(extra*neurons_per_pointer*len(keys)), extra*len(keys),
+            LIF(neurons_per_pointer*len(keys)),
+            self.calculate_max_capacity(vocab.dimensions, intercept),
             initial_keys=keys, **kwargs)
 
         self.inputs = dict(default=(self.key, self.dimension))

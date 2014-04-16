@@ -1,6 +1,19 @@
+import logging
+import random
+
 import numpy as np
 
+from nengo.utils.distributions import UniformHypersphere
 from . import pointer
+
+logger = logging.getLogger(__name__)
+
+
+def orthonormal(m):
+    """Returns the closest orthonormal matrix to m."""
+    # TODO: remove dependency on scipy, and move to another file
+    from scipy.linalg import sqrtm, inv
+    return m.dot(inv(sqrtm(m.T.dot(m)))).real
 
 
 class Vocabulary(object):
@@ -34,6 +47,10 @@ class Vocabulary(object):
         the processing time.
     rng : numpy.random.RandomState, optional
         The random number generator to use to create new vectors
+    seed_all_zero_similarities : bool, optional
+        If True (default), and max_similarity >= 0, then the first
+        2*dimensions semantic pointers will be some randomly generated
+        orthonormal basis together with its negation.
 
     Attributes
     ----------
@@ -54,12 +71,11 @@ class Vocabulary(object):
         the processing time.
     identity : SemanticPointer
         The identity vector for this dimensionality [1, 0, 0, 0, ...]
-
     """
 
     def __init__(self, dimensions, randomize=True, unitary=False,
                  max_similarity=0.1, include_pairs=False,
-                 rng=None):
+                 rng=None, seed_all_zero_similarities=True):
         self.dimensions = dimensions
         self.randomize = randomize
         self.unitary = unitary
@@ -74,6 +90,18 @@ class Vocabulary(object):
         self._identity = None
         self.rng = rng
 
+        self._zero_dots = []
+        if seed_all_zero_similarities:
+            try:
+                ortho = orthonormal(UniformHypersphere(
+                    dimensions, surface=True).sample(dimensions))
+                self._zero_dots = list(ortho) + list(-ortho)
+                random.shuffle(self._zero_dots)
+            except ImportError:
+                logger.warning("Could not import scipy. Falling back to "
+                               "default approach of randomly picking "
+                               "semantic pointers.")
+
     def create_pointer(self, attempts=1000, unitary=False):
         """Create a new semantic pointer.
 
@@ -81,20 +109,31 @@ class Vocabulary(object):
         parameters from self.
         """
         if self.randomize:
-            count = 0
-            p = pointer.SemanticPointer(self.dimensions, rng=self.rng)
-            if self.vectors.shape[0] > 0:
-                while count < attempts:
-                    similarity = np.dot(self.vectors, p.v)
-                    if max(similarity) < self.max_similarity:
-                        break
+            if self.max_similarity >= 0 and len(self._zero_dots):
+                p = pointer.SemanticPointer(self._zero_dots.pop())
+            else:
+                count = 0
+                best_p = None
+                best_similarity = 1
+                while True:
                     p = pointer.SemanticPointer(self.dimensions, rng=self.rng)
+                    if self.vectors.shape[0] == 0:
+                        break
+                    max_similarity = max(np.dot(self.vectors, p.v))
+                    if max_similarity <= self.max_similarity:
+                        break
+                    if max_similarity <= best_similarity:
+                        best_p = p
+                        best_simlarity = max_similarity
+                    if count >= attempts:
+                        logger.warning("Could not create a semantic pointer "
+                            "with max_similarity <= %1.2f (D=%d, M=%d). Best "
+                            "was %1.2f after %d attempts.",
+                            self.max_similarity, self.dimensions,
+                            len(self.pointers), best_simlarity, attempts)
+                        p = best_p
+                        break
                     count += 1
-                else:
-                    print ('Warning: Could not create a semantic pointer ' +
-                           'with max_similarity=%1.2f (D=%d, M=%d)' %
-                           (self.max_similarity, self.dimensions,
-                            len(self.pointers)))
 
             # Check and make vector unitary if needed
             if unitary:
