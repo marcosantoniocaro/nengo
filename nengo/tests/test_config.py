@@ -99,15 +99,16 @@ def test_defaults():
 
     assert b.radius == nengo.defaultconfig[nengo.Ensemble].radius
 
-    with nengo.Network() as net1:
+    with nengo.Network():
         c = nengo.Ensemble(nengo.LIF(10), 1, radius=nengo.Default)
 
         with nengo.Network() as net2:
+            net2.config.add_config(nengo.objects.EnsembleDefaults)
             net2.config[nengo.Ensemble].radius = 2.0
 
             a = nengo.Ensemble(nengo.LIF(50), 1, radius=nengo.Default)
 
-    assert c.radius == net1.config[nengo.Ensemble].radius
+    assert c.radius == nengo.defaultconfig[nengo.Ensemble].radius
     assert a.radius == 2.0
 
 if __name__ == '__main__':

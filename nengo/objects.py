@@ -120,8 +120,7 @@ class Network(with_metaclass(NengoObjectContainer)):
         inst.nodes = inst.objects[Node]
         inst.connections = inst.objects[Connection]
         inst.networks = inst.objects[Network]
-        inst.config = Config([EnsembleDefaults, NodeDefaults,
-                              ConnectionDefaults, NeuronDefaults])
+        inst.config = Config()
 
         return inst
 
