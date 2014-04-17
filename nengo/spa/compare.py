@@ -7,7 +7,7 @@ import numpy as np
 class Compare(Module):
     def __init__(self, dimensions,
                         vocab=None, neurons_per_multiply=200,
-                        output_scaling=1.0, radius=1.0):
+                        output_scaling=1.0, radius=1.0, direct=False):
 
         Module.__init__(self)
         if vocab is None:
@@ -15,15 +15,20 @@ class Compare(Module):
 
         self.output_scaling = output_scaling
 
+        if direct:
+            neurons = nengo.Direct()
+        else:
+            neurons = nengo.LIF(nenurons_per_multiply)
         self.compare = nengo.networks.EnsembleArray(
-            nengo.LIF(neurons_per_multiply), length=dimensions, dimensions=2,
+            neurons, dimensions, dimensions=2,
             label='compare')
 
-        encoders = np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]], dtype='float')/np.sqrt(2)
-        encoders = np.tile(encoders, ((neurons_per_multiply/4)+1,1))[:neurons_per_multiply]
-        for e in self.compare.ensembles:
-            e.encoders = encoders
-            e.radius = radius*np.sqrt(2)
+        if not direct:
+            encoders = np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]], dtype='float')/np.sqrt(2)
+            encoders = np.tile(encoders, ((neurons_per_multiply/4)+1,1))[:neurons_per_multiply]
+            for e in self.compare.ensembles:
+                e.encoders = encoders
+                e.radius = radius*np.sqrt(2)
 
         self.inputA = nengo.Node(size_in=dimensions, label='inputA')
         self.inputB = nengo.Node(size_in=dimensions, label='inputB')
@@ -45,7 +50,7 @@ class Compare(Module):
 
         def multiply(x):
             return [x[0]*x[1]]
-        self.compare.add_output('product', 1, function=multiply)
+        self.compare.add_output('product', function=multiply)
 
 
 

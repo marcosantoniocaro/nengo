@@ -21,7 +21,7 @@ class Buffer(Module):
         The vocabulary to use to interpret this vector
     """
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
-                 vocab=None):
+                 vocab=None, direct=False):
         Module.__init__(self)
 
         if vocab is None:
@@ -33,8 +33,12 @@ class Buffer(Module):
                             'must be divisible by subdimensions(%d)' %
                             subdimensions)
 
+        if direct:
+            neurons = nengo.Direct()
+        else:
+            neurons = nengo.LIF(neurons_per_dimension*subdimensions)
         self.state = nengo.networks.EnsembleArray(
-            nengo.LIF(neurons_per_dimension*subdimensions),
+            neurons,
             dimensions/subdimensions,
             dimensions=subdimensions, label='state')
 

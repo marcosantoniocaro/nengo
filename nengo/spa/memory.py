@@ -17,11 +17,11 @@ class Memory(Buffer):
     """
 
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
-                 filter=0.01, vocab=None, tau=None):
+                 filter=0.01, vocab=None, tau=None, direct=False):
         Buffer.__init__(self, dimensions=dimensions,
                         subdimensions=subdimensions,
                         neurons_per_dimension=neurons_per_dimension,
-                        vocab=vocab)
+                        vocab=vocab, direct=direct)
 
         if tau is None:
             transform = 1.0
