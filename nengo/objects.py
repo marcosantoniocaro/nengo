@@ -185,6 +185,7 @@ class Network(with_metaclass(NengoObjectContainer)):
 
     def __enter__(self):
         Network.context.append(self)
+        Config.context.append(self.config)
         return self
 
     def __exit__(self, dummy_exc_type, dummy_exc_value, dummy_tb):
@@ -193,6 +194,7 @@ class Network(with_metaclass(NengoObjectContainer)):
                                "exiting from a 'with' block.")
 
         network = Network.context.pop()
+        Config.context.pop()
 
         if network is not self:
             raise RuntimeError("Network.context in bad state; was expecting "
@@ -258,7 +260,7 @@ class NengoObject(with_metaclass(NetworkMember)):
     def __setattr__(self, name, val):
         if val is Default:
             for conf in reversed([nengo.defaultconfig] +
-                                 [n.config for n in Network.context]):
+                                 [c for c in Config.context]):
                 try:
                     val = getattr(conf[type(self)], name)
                     break

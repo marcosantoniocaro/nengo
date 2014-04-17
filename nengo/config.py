@@ -13,6 +13,7 @@ can be found at
 """
 
 import weakref
+import collections
 
 
 class DefaultType:
@@ -77,6 +78,8 @@ class Config(object):
         config_items = [TestConfigConnection]
     """
 
+    context = collections.deque(maxlen=100)  # static stack of Network objects
+
     def __init__(self, config_items=[]):
         self.items = {}
         self.configurable = {}
@@ -108,3 +111,18 @@ class Config(object):
 #        else:
 #            self.configurable[config_item.nengo_class] = [config_item]
         self.configurable[config_item.nengo_class] = config_item
+
+    def __enter__(self):
+        Config.context.append(self)
+
+    def __exit__(self, dummy_exc_type, dummy_exc_value, dummy_tb):
+        if len(Config.context) == 0:
+            raise RuntimeError("Config.context in bad state; was empty when "
+                               "exiting from a 'with' block.")
+
+        config = Config.context.pop()
+
+        if config is not self:
+            raise RuntimeError("Config.context in bad state; was expecting "
+                               "current context to be '%s' but instead got "
+                               "'%s'." % (self, config))
