@@ -12,7 +12,7 @@ class SourceWithAddition(Source):
     def __add__(self, other):
         if isinstance(other, (int, float)):
             other = Symbol('%g' % other)
-        if isinstance(other, (Symbol, Source)):
+        if isinstance(other, (Symbol, Source, CombinedSource)):
             return VectorList([self, other])
         else:
             return NotImplemented
@@ -25,6 +25,58 @@ class SourceWithAddition(Source):
 
     def __rsub__(self, other):
         return (-self).__add__(other)
+
+    def __mul__(self, other):
+        if isinstance(other, SourceWithAddition):
+            return CombinedSource(self, other)
+        else:
+            return super(SourceWithAddition, self).__mul__(other)
+
+
+class CombinedSource(object):
+    """The convolution of two sources together"""
+    def __init__(self, source1, source2, transform=Symbol('1')):
+        self.source1 = source1
+        self.source2 = source2
+        self.transform = transform
+
+    def __mul__(self, other):
+        if isinstance(other, (Symbol, int, float)):
+            return CombinedSource(self.source1, self.source2,
+                                  self.transform * other)
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, (Symbol, int, float)):
+            return CombinedSource(self.source1, self.source2,
+                                  self.transform * other)
+        else:
+            return NotImplemented
+
+    def __neg__(self):
+        return CombinedSource(self.source1, self.source2, -self.transform)
+
+    def __add__(self, other):
+        if isinstance(other, (int, float)):
+            other = Symbol('%g' % other)
+        if isinstance(other, (Symbol, Source, CombinedSource)):
+            return VectorList([self, other])
+        else:
+            return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __rsub__(self, other):
+        return (-self).__add__(other)
+
+    def __str__(self):
+        return '((%s) * (%s)) * %s' % (self.source1, self.source2,
+                                   self.transform)
 
 
 class VectorList(object):
@@ -48,7 +100,7 @@ class VectorList(object):
     def __add__(self, other):
         if isinstance(other, (int, float)):
             other = Symbol('%g' % other)
-        if isinstance(other, (Symbol, Source)):
+        if isinstance(other, (Symbol, Source, CombinedSource)):
             return VectorList(self.items + [other])
         elif isinstance(other, VectorList):
             return VectorList(self.items + other.items)
@@ -107,7 +159,7 @@ class Effect(object):
 
         # ensure that all the results are VectorLists
         for k, v in self.effect.items():
-            if isinstance(v, (Symbol, Source)):
+            if isinstance(v, (Symbol, Source, CombinedSource)):
                 self.effect[k] = VectorList([v])
             assert isinstance(self.effect[k], VectorList)
 
