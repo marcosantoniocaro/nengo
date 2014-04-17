@@ -124,8 +124,6 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
         t1 = vocab.parse(source.transform.symbol).get_convolution_matrix()
         # the linear transform to compute the fixed dot product
         t2 = np.array([vocab.parse(symbol.symbol).v*scale])
-        print t1.shape
-        print t2.shape
 
         transform = np.dot(t2, t1)
 
