@@ -100,6 +100,9 @@ def test_effect():
     e = Effect(['a', 'b'], 'm=a, n=b*2*A')
     assert str(e) == 'm=a, n=(2 * A) * b'
 
+    e = Effect(['a', 'b'], 'm=0')
+    assert str(e) == 'm=0'
+
     with pytest.raises(NameError):
         Effect(['a', 'b'], 'q=z')
 

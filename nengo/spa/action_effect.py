@@ -159,6 +159,8 @@ class Effect(object):
 
         # ensure that all the results are VectorLists
         for k, v in self.effect.items():
+            if isinstance(v, (int, float)):
+                v = Symbol('%g' % v)
             if isinstance(v, (Symbol, Source, CombinedSource)):
                 self.effect[k] = VectorList([v])
             assert isinstance(self.effect[k], VectorList)
