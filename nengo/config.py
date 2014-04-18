@@ -69,11 +69,9 @@ class ConfigItem(object):
 
     def __str__(self):
         rep = "Defaults for %s:\n" % self._nengo_class
-        with Config([self]):
-            for d in dir(self):
-                if not d.startswith("_"):
-                    rep += "  %s: %s\n" % (
-                        d, Config.lookup(d, self._nengo_class))
+        for d in dir(self):
+            if not d.startswith("_"):
+                rep += "  %s: %s\n" % (d, getattr(self, d))
         return rep
 
 
