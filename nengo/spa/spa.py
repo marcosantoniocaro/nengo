@@ -36,6 +36,25 @@ class SPA(nengo.Network):
             self.c = spa.Memory(dimensions=8)
             self.cortical = spa.Cortical(spa.Actions(
                 'b=a*CAT', 'c=b*~CAT'))
+
+    For complex cognitive control, the key modules are the BasalGangla
+    and the Thalamus.  Together, these allow us to define complex actions
+    using the Action syntax:
+
+    class SequenceExample(spa.SPA):
+        def __init__(self):
+            spa.SPA.__init__(self)
+            self.state = spa.Memory(dimensions=32)
+
+            actions = spa.Actions('dot(state, A) --> state=B',
+                                  'dot(state, B) --> state=C',
+                                  'dot(state, C) --> state=D',
+                                  'dot(state, D) --> state=E',
+                                  'dot(state, E) --> state=A',
+                                  )
+
+            self.bg = spa.BasalGanglia(actions=actions)
+            self.thal = spa.Thalamus(self.bg)
     """
 
     def __init__(self, rng=None):
