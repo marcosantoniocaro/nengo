@@ -13,6 +13,7 @@ can be found at
 """
 
 import collections
+import inspect
 import weakref
 
 
@@ -38,7 +39,7 @@ class Parameter(object):
 def configures(nengo_class):
     """Decorator to mark ConfigItems as to what class they configure"""
     def set_config_nengo_class(klass):
-        klass.nengo_class = nengo_class
+        klass._nengo_class = nengo_class
         return klass
     return set_config_nengo_class
 
@@ -65,6 +66,15 @@ class ConfigItem(object):
             raise AttributeError("No value set for config parameter '%s'"
                                  % key)
         return val
+
+    def __str__(self):
+        rep = "Defaults for %s:\n" % self._nengo_class
+        with Config([self]):
+            for d in dir(self):
+                if not d.startswith("_"):
+                    rep += "  %s: %s\n" % (
+                        d, Config.lookup(d, self._nengo_class))
+        return rep
 
 
 class Config(object):
@@ -101,7 +111,9 @@ class Config(object):
             mro.extend(list(key.__class__.__mro__))
             for cls in mro:
                 if cls in self.configurable:
-                    item = self.configurable[cls]()
+                    item = self.configurable[cls]
+                    if inspect.isclass(item):
+                        item = item()
                     self.items[key] = item
                     break
             else:
@@ -110,14 +122,24 @@ class Config(object):
         return item
 
     def add_config(self, config_item):
-        if not hasattr(config_item, "nengo_class"):
+        if not hasattr(config_item, "_nengo_class"):
             raise AttributeError(
                 "%s is not a decorated ConfigItem" % config_item)
-#        if self.configurable.has_key(config_item.nengo_class):
-#            self.configurable[config_item.nengo_class] += [config_item]
-#        else:
-#            self.configurable[config_item.nengo_class] = [config_item]
-        self.configurable[config_item.nengo_class] = config_item
+
+        self.configurable[config_item._nengo_class] = config_item
+
+    @classmethod
+    def lookup(cls, key, conf_type):
+        for conf in reversed([c for c in cls.context]):
+            try:
+                val = getattr(conf[conf_type], key)
+                return val
+            except (KeyError, AttributeError):
+                # either there is no config for that object type,
+                # or the config item has no entry for that attribute
+                pass
+
+        raise AttributeError("No config value found for %s" % key)
 
     def __enter__(self):
         Config.context.append(self)

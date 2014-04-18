@@ -5,7 +5,6 @@ import pickle
 
 import numpy as np
 
-import nengo
 import nengo.utils.numpy as npext
 from nengo.utils.compat import is_callable, is_iterable, with_metaclass
 from nengo.utils.distributions import Uniform
@@ -261,17 +260,7 @@ class NengoObject(with_metaclass(NetworkMember)):
 
     def __setattr__(self, name, val):
         if val is Default:
-            for conf in reversed([nengo.defaultconfig] +
-                                 [c for c in Config.context]):
-                try:
-                    val = getattr(conf[type(self)], name)
-                    break
-                except (KeyError, AttributeError):
-                    # either there is no config for that object type,
-                    # or the config item has no entry for that attribute
-                    pass
-            else:
-                raise AttributeError("No config value found for %s" % name)
+            val = Config.lookup(name, type(self))
         super(NengoObject, self).__setattr__(name, val)
 
 
