@@ -19,6 +19,8 @@ class Buffer(Module):
         Number of neurons in an ensemble will be this*subdimensions
     vocab : Vocabulary, optional
         The vocabulary to use to interpret this vector
+    direct : boolean
+        Whether or not to use direct mode for the neurons
     """
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
                  vocab=None, direct=False):
