@@ -34,7 +34,7 @@ def test_basal_ganglia():
     model = SPA()
 
     with model:
-        p = nengo.Probe(model.bg.input, 'output', filter=0.03)
+        p = nengo.Probe(model.bg.input, 'output', synapse=0.03)
 
     model.seed = 3
     sim = nengo.Simulator(model)

@@ -17,7 +17,7 @@ def test_spa_complex():
             'dot(vision, WRITE) --> verb=vision',
             'dot(vision, ONE+TWO+THREE) --> noun=vision',
             '''0.5*(dot(NONE-WRITE-ONE-TWO-THREE, vision) +
-                    dot(phrase, WRITE*VERB))
+                   dot(phrase, WRITE*VERB))
                --> motor=phrase*~NOUN''',
             )
 
@@ -51,11 +51,11 @@ def test_spa_complex():
         s = ParseWrite(label='SPA')
 
         probes = {
-            'vision': nengo.Probe(s.vision.state.output, filter=0.03),
-            'phrase': nengo.Probe(s.phrase.state.output, filter=0.03),
-            'motor': nengo.Probe(s.motor.state.output, filter=0.03),
-            'noun': nengo.Probe(s.noun.state.output, filter=0.03),
-            'verb': nengo.Probe(s.verb.state.output, filter=0.03),
+            'vision': nengo.Probe(s.vision.state.output, synapse=0.03),
+            'phrase': nengo.Probe(s.phrase.state.output, synapse=0.03),
+            'motor': nengo.Probe(s.motor.state.output, synapse=0.03),
+            'noun': nengo.Probe(s.noun.state.output, synapse=0.03),
+            'verb': nengo.Probe(s.verb.state.output, synapse=0.03),
         }
     sim = nengo.Simulator(model)
     sim.run(4.5)

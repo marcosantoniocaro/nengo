@@ -35,8 +35,8 @@ def test_spa_basic():
         s = SpaTestBasic(label='spa')
         print s._modules
 
-        pState = nengo.Probe(s.state.state.output, 'output', filter=0.03)
-        pActions = nengo.Probe(s.thal.actions.output, 'output', filter=0.03)
+        pState = nengo.Probe(s.state.state.output, 'output', synapse=0.03)
+        pActions = nengo.Probe(s.thal.actions.output, 'output', synapse=0.03)
 
     sim = nengo.Simulator(model)
     sim.run(1)

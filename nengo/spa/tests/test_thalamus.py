@@ -34,11 +34,10 @@ def test_thalamus():
     with model:
         input, vocab = model.get_module_input('motor')
         input2, vocab2 = model.get_module_input('motor2')
-        p = nengo.Probe(input, 'output', filter=0.03)
-        p2 = nengo.Probe(input2, 'output', filter=0.03)
+        p = nengo.Probe(input, 'output', synapse=0.03)
+        p2 = nengo.Probe(input2, 'output', synapse=0.03)
 
-    model.seed = 3
-    sim = nengo.Simulator(model)
+    sim = nengo.Simulator(model, seed=2)
     sim.run(0.3)
 
     data = vocab.dot(sim.data[p].T)

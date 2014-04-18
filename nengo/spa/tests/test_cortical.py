@@ -18,7 +18,7 @@ def test_connect():
     output, vocab = model.get_module_output('buffer2')
 
     with model:
-        p = nengo.Probe(output, 'output', filter=0.03)
+        p = nengo.Probe(output, 'output', synapse=0.03)
 
     model.seed = 2
     sim = nengo.Simulator(model)
@@ -42,7 +42,7 @@ def test_transform():
     output, vocab = model.get_module_output('buffer2')
 
     with model:
-        p = nengo.Probe(output, 'output', filter=0.03)
+        p = nengo.Probe(output, 'output', synapse=0.03)
 
     model.seed = 4
     sim = nengo.Simulator(model)
@@ -66,7 +66,7 @@ def test_translate():
     output, vocab = model.get_module_output('buffer2')
 
     with model:
-        p = nengo.Probe(output, 'output', filter=0.03)
+        p = nengo.Probe(output, 'output', synapse=0.03)
 
     model.seed = 6
     sim = nengo.Simulator(model)
@@ -93,7 +93,7 @@ def test_errors():
             self.buffer = spa.Buffer(dimensions=16)
             self.cortical = spa.Cortical(spa.Actions('buffer2=buffer'))
 
-    with pytest.raises(KeyError):
+    with pytest.raises(NameError):
         SPA()
 
 
@@ -113,8 +113,8 @@ def test_direct():
     output2, vocab2 = model.get_module_output('buffer2')
 
     with model:
-        p1 = nengo.Probe(output1, 'output', filter=0.03)
-        p2 = nengo.Probe(output2, 'output', filter=0.03)
+        p1 = nengo.Probe(output1, 'output', synapse=0.03)
+        p2 = nengo.Probe(output2, 'output', synapse=0.03)
 
     model.seed = 8
     sim = nengo.Simulator(model)

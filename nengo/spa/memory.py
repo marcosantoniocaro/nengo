@@ -9,7 +9,7 @@ class Memory(Buffer):
 
     Parameters
     ----------
-    filter : float
+    synapse : float
         synaptic filter to use on recurrent connection
     tau : float or None
         Effective time constant of the integrator.  If None, it should
@@ -17,7 +17,7 @@ class Memory(Buffer):
     """
 
     def __init__(self, dimensions, subdimensions=16, neurons_per_dimension=50,
-                 filter=0.01, vocab=None, tau=None, direct=False):
+                 synapse=0.01, vocab=None, tau=None, direct=False):
         Buffer.__init__(self, dimensions=dimensions,
                         subdimensions=subdimensions,
                         neurons_per_dimension=neurons_per_dimension,
@@ -26,7 +26,7 @@ class Memory(Buffer):
         if tau is None:
             transform = 1.0
         else:
-            transform = 1.0 - filter / tau
+            transform = 1.0 - synapse / tau
 
         nengo.Connection(self.state.output, self.state.input,
-                         transform=transform, filter=filter)
+                         transform=transform, synapse=synapse)

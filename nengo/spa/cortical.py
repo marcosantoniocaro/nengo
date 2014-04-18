@@ -12,13 +12,13 @@ class Cortical(Module):
     ----------
     actions : spa.Actions
         The actions to implement
-    filter : float
+    synapse : float
         The synaptic filter to use for the connections
     """
-    def __init__(self, actions, filter=0.01):
+    def __init__(self, actions, synapse=0.01):
         Module.__init__(self)
         self.actions = actions
-        self.filter = filter
+        self.synapse = synapse
         self._bias = None
 
     def on_add(self, spa):
@@ -65,7 +65,7 @@ class Cortical(Module):
 
         with self.spa:
             nengo.Connection(self.bias, sink, transform=transform,
-                             filter=self.filter)
+                             synapse=self.synapse)
 
     def add_route_effect(self, target_name, source_name, transform):
         """Connect a module outtput to a module input
@@ -92,4 +92,4 @@ class Cortical(Module):
 
         with self.spa:
             nengo.Connection(source, target, transform=t,
-                             filter=self.filter)
+                             synapse=self.synapse)

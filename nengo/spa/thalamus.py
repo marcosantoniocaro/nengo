@@ -17,11 +17,11 @@ class Thalamus(Module):
         Number of neurons per action to represent selection
     inhibit : float
         Strength of inhibition between actions
-    filter_inhibit : float
+    synapse_inhibit : float
         Synaptic filter to apply for inhibition between actions
-    filter_bg : float
+    synapse_bg : float
         Synaptic filter for connection between basal ganglia and thalamus
-    filter_direct : float
+    synapse_direct : float
         Synaptic filter for direct outputs
     threshold_action : float
         Minimum value for action representation
@@ -29,7 +29,7 @@ class Thalamus(Module):
         Number of neurons per routing channel dimension
     subdim_channel : int
         Number of subdimensions used in routing channel
-    filter_channel : float
+    synapse_channel : float
         Synaptic filter for channel inputs and outputs
     neurons_cconv : int
         Number of neurons per circular convolution dimension
@@ -37,31 +37,31 @@ class Thalamus(Module):
         Number of neurons per gate
     threshold_gate : float
         Minimum value for gating neurons
-    filter_to-gate : float
+    synapse_to-gate : float
         Synaptic filter for controlling a gate
     """
     def __init__(self, bg, neurons_action=50, threshold_action=0.2,
-                 inhibit=1, filter_inhibit=0.008, filter_bg=0.008,
-                 filter_direct=0.01,
+                 inhibit=1, synapse_inhibit=0.008, synapse_bg=0.008,
+                 synapse_direct=0.01,
                  neurons_channel_dim=50, subdim_channel=16,
-                 filter_channel=0.01,
+                 synapse_channel=0.01,
                  neurons_cconv=200,
-                 neurons_gate=40, threshold_gate=0.3, filter_to_gate=0.002):
+                 neurons_gate=40, threshold_gate=0.3, synapse_to_gate=0.002):
         Module.__init__(self)
         self.bg = bg
         self.neurons_action = neurons_action
         self.inhibit = inhibit
-        self.filter_inhibit = filter_inhibit
-        self.filter_direct = filter_direct
+        self.synapse_inhibit = synapse_inhibit
+        self.synapse_direct = synapse_direct
         self.threshold_action = threshold_action
         self.neurons_channel_dim = neurons_channel_dim
         self.subdim_channel = subdim_channel
-        self.filter_channel = filter_channel
+        self.synapse_channel = synapse_channel
         self.neurons_gate = neurons_gate
         self.neurons_cconv = neurons_cconv
         self.threshold_gate = threshold_gate
-        self.filter_to_gate = filter_to_gate
-        self.filter_bg = filter_bg
+        self.synapse_to_gate = synapse_to_gate
+        self.synapse_bg = synapse_bg
 
         self.gates = {}     # gating ensembles per action (created as needed)
         self.channels = {}  # channels to pass transformed data between modules
@@ -84,17 +84,17 @@ class Thalamus(Module):
             # basal ganglia inhibition
             self.bias = nengo.Node(output=[1], label='bias')
             nengo.Connection(self.bias, self.actions.input,
-                             transform=np.ones((N, 1)), filter=None)
+                             transform=np.ones((N, 1)), synapse=None)
 
             # mutual inhibition on the actions
             nengo.Connection(self.actions.output, self.actions.input,
                              transform=(np.eye(N)-1)*self.inhibit,
-                             filter=self.filter_inhibit)
+                             synapse=self.synapse_inhibit)
 
         with spa:
             # connect basal ganglia to thalamus
             nengo.Connection(self.bg.output, self.actions.input,
-                             filter=self.filter_bg)
+                             synapse=self.synapse_bg)
 
         # implement the various effects
         for i, action in enumerate(self.bg.actions.actions):
@@ -129,7 +129,7 @@ class Thalamus(Module):
         with self.spa:
             nengo.Connection(self.actions.ensembles[index],
                              sink, transform=transform,
-                             filter=self.filter_direct)
+                             synapse=self.synapse_direct)
 
     def get_gate(self, index):
         """Return the gate for an action
@@ -149,8 +149,8 @@ class Thalamus(Module):
                                       label='gate[%d]' % index,
                                       encoders=[[1]] * self.neurons_gate)
                 nengo.Connection(self.actions.ensembles[index], gate,
-                                 filter=self.filter_to_gate, transform=-1)
-                nengo.Connection(self.bias, gate, filter=None)
+                                 synapse=self.synapse_to_gate, transform=-1)
+                nengo.Connection(self.bias, gate, synapse=None)
                 self.gates[index] = gate
         return self.gates[index]
 
@@ -192,7 +192,7 @@ class Thalamus(Module):
             inhibit = [[-1]]*(self.neurons_channel_dim*subdim)
             for e in channel.ensembles:
                 nengo.Connection(gate, e.neurons, transform=inhibit,
-                                 filter=self.filter_inhibit)
+                                 synapse=self.synapse_inhibit)
 
         with self.spa:
             # compute the requested transform
@@ -203,9 +203,9 @@ class Thalamus(Module):
 
             # connect source to target
             nengo.Connection(source, channel.input, transform=t,
-                             filter=self.filter_channel)
+                             synapse=self.synapse_channel)
             nengo.Connection(channel.output, target,
-                             filter=self.filter_channel)
+                             synapse=self.synapse_channel)
 
     def add_conv_effect(self, index, target_name, effect):
         source1 = effect.source1
@@ -228,7 +228,7 @@ class Thalamus(Module):
             inhibit = [[-1]]*(self.neurons_cconv)
             for e in channel.ensemble.ensembles:
                 nengo.Connection(gate, e.neurons, transform=inhibit,
-                                 filter=self.filter_inhibit)
+                                 synapse=self.synapse_inhibit)
 
         with self.spa:
             # compute the requested transform
@@ -238,16 +238,16 @@ class Thalamus(Module):
                 t = np.dot(s1_vocab.transform_to(target_vocab), t)
 
             nengo.Connection(channel.output, target, transform=t,
-                             filter=self.filter_channel)
+                             synapse=self.synapse_channel)
 
             t1 = s1_vocab.parse(
                 source1.transform.symbol).get_convolution_matrix()
             nengo.Connection(s1_output, channel.A, transform=t1,
-                             filter=self.filter_channel)
+                             synapse=self.synapse_channel)
 
             t2 = s2_vocab.parse(
                 source2.transform.symbol).get_convolution_matrix()
             if s1_vocab is not s2_vocab:
                 t2 = np.dot(s2_vocab.transform_to(s1_vocab), t2)
             nengo.Connection(s2_output, channel.B, transform=t2,
-                             filter=self.filter_channel)
+                             synapse=self.synapse_channel)

@@ -74,7 +74,7 @@ def test_run():
     buffer, vocab = model.get_module_output('buffer')
 
     with model:
-        p = nengo.Probe(buffer, 'output', filter=0.03)
+        p = nengo.Probe(buffer, 'output', synapse=0.03)
 
     sim = nengo.Simulator(model)
     sim.run(0.5)

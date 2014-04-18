@@ -36,4 +36,4 @@ class Input(Module):
             self.input_nodes[name] = node
 
             with spa:
-                nengo.Connection(node, target, filter=None)
+                nengo.Connection(node, target, synapse=None)

@@ -133,6 +133,7 @@ class Condition(object):
         self.objects['dot'] = DotProduct
 
         # parse the condition
+        condition = ' '.join(condition.split('\n'))
         self.condition = eval(condition, {}, self)
 
         # ensure the result is a ConditionList, to make it easier for

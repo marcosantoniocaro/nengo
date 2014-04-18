@@ -11,12 +11,12 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
     ----------
     actions : spa.Actions
         The actions to choose between
-    input_filter : float
-        The filter on all input connections
+    input_synapse : float
+        The synaptic filter on all input connections
     """
-    def __init__(self, actions, input_filter=0.002):
+    def __init__(self, actions, input_synapse=0.002):
         self.actions = actions
-        self.input_filter = input_filter
+        self.input_synapse = input_synapse
         self._bias = None
         Module.__init__(self)
         nengo.networks.BasalGanglia.__init__(self,
@@ -79,7 +79,7 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
         """
         with self.spa:
             nengo.Connection(self.bias, self.input[index:index+1],
-                             transform=value, filter=self.input_filter)
+                             transform=value, synapse=self.input_synapse)
 
     def add_compare_input(self, index, source1, source2, scale):
         """Make an input that is the dot product of two different sources.
@@ -129,4 +129,4 @@ class BasalGanglia(nengo.networks.BasalGanglia, Module):
 
         with self.spa:
             nengo.Connection(output, self.input[index:index+1],
-                             transform=transform, filter=self.input_filter)
+                             transform=transform, synapse=self.input_synapse)

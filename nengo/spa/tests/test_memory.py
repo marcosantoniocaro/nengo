@@ -75,9 +75,9 @@ def test_run():
     memory, vocab = model.get_module_output('memory')
 
     with model:
-        p = nengo.Probe(memory, 'output', filter=0.03)
+        p = nengo.Probe(memory, 'output', synapse=0.03)
 
-    sim = nengo.Simulator(model)
+    sim = nengo.Simulator(model, seed=4)
     sim.run(0.5)
 
     data = np.dot(sim.data[p], vocab.vectors.T)
@@ -104,7 +104,7 @@ def test_run_decay():
     memory, vocab = model.get_module_output('memory')
 
     with model:
-        p = nengo.Probe(memory, 'output', filter=0.03)
+        p = nengo.Probe(memory, 'output', synapse=0.03)
 
     sim = nengo.Simulator(model)
     sim.run(0.3)

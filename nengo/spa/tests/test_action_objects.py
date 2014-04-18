@@ -51,11 +51,11 @@ def test_source():
     assert str(s_q.transform) == 'Q'
     assert str(s_q) == 'Q * s'
 
-    assert str(s * 1.5) == '(1 * 1.5) * s'
+    assert str(s * 1.5) == '1.5 * s'
     assert str(s * A) == 'A * s'
     assert str(s_q * A) == '(Q * A) * s'
 
-    assert str(1.5 * s) == '(1 * 1.5) * s'
+    assert str(1.5 * s) == '1.5 * s'
     assert str(A * s) == 'A * s'
     assert str(A * s_q) == '(Q * A) * s'
 
