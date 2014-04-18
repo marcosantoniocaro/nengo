@@ -12,8 +12,8 @@ can be found at
 
 """
 
-import weakref
 import collections
+import weakref
 
 
 class DefaultType:
@@ -58,6 +58,13 @@ class ConfigItem(object):
         if key not in dir(self):
             raise AttributeError('Unknown config parameter "%s"' % key)
         super(ConfigItem, self).__setattr__(key, value)
+
+    def __getattribute__(self, key):
+        val = super(ConfigItem, self).__getattribute__(key)
+        if val is Default:
+            raise AttributeError("No value set for config parameter '%s'"
+                                 % key)
+        return val
 
 
 class Config(object):

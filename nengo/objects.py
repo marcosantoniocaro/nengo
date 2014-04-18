@@ -120,8 +120,10 @@ class Network(with_metaclass(NengoObjectContainer)):
         inst.nodes = inst.objects[Node]
         inst.connections = inst.objects[Connection]
         inst.networks = inst.objects[Network]
-        inst.config = Config()
-
+        from nengo.utils.config import (
+            EmptyEnsemble, EmptyNode, EmptyConnection, EmptyNeurons)
+        inst.config = Config([EmptyEnsemble, EmptyNode,
+                              EmptyConnection, EmptyNeurons])
         return inst
 
     context = collections.deque(maxlen=100)  # static stack of Network objects

@@ -103,7 +103,6 @@ def test_defaults():
         c = nengo.Ensemble(nengo.LIF(10), 1, radius=nengo.Default)
 
         with nengo.Network() as net2:
-            net2.config.add_config(nengo.objects.EnsembleDefaults)
             net2.config[nengo.Ensemble].radius = 2.0
 
             a = nengo.Ensemble(nengo.LIF(50), 1, radius=nengo.Default)
