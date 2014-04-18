@@ -42,7 +42,7 @@ def test_connected(Simulator):
         output = nengo.Node(output=lambda t, x: np.square(x),
                             size_in=1,
                             label='output')
-        nengo.Connection(input, output, filter=None)  # Direct connection
+        nengo.Connection(input, output, synapse=None)  # Direct connection
         p_in = nengo.Probe(input, 'output')
         p_out = nengo.Probe(output, 'output')
 
@@ -79,9 +79,9 @@ def test_passthrough(Simulator):
         passthrough = nengo.Node(size_in=1)
         out = nengo.Node(output=lambda t, x: x, size_in=1)
 
-        nengo.Connection(in1, passthrough, filter=None)
-        nengo.Connection(in2, passthrough, filter=None)
-        nengo.Connection(passthrough, out, filter=None)
+        nengo.Connection(in1, passthrough, synapse=None)
+        nengo.Connection(in2, passthrough, synapse=None)
+        nengo.Connection(passthrough, out, synapse=None)
 
         in1_p = nengo.Probe(in1, 'output')
         in2_p = nengo.Probe(in2, 'output')
@@ -113,8 +113,8 @@ def test_passthrough_filter(Simulator):
         v = nengo.Node(output=lambda t, x: x, size_in=1)
 
         synapse = 0.3
-        nengo.Connection(u, passthrough, filter=None)
-        nengo.Connection(passthrough, v, filter=synapse)
+        nengo.Connection(u, passthrough, synapse=None)
+        nengo.Connection(passthrough, v, synapse=synapse)
 
         up = nengo.Probe(u)
         vp = nengo.Probe(v)
@@ -145,8 +145,8 @@ def test_circular(Simulator):
     with m:
         a = nengo.Node(output=lambda t, x: x+1, size_in=1)
         b = nengo.Node(output=lambda t, x: x+1, size_in=1)
-        nengo.Connection(a, b, filter=None)
-        nengo.Connection(b, a, filter=None)
+        nengo.Connection(a, b, synapse=None)
+        nengo.Connection(b, a, synapse=None)
 
         a_p = nengo.Probe(a, 'output')
         b_p = nengo.Probe(b, 'output')
@@ -181,13 +181,16 @@ def test_output_shape_error(Simulator):
 
 
 def test_none(Simulator, nl_nodirect):
-    """Ensure that a node which outputs `None` raises an error"""
+    """Test for nodes that output None."""
+
     model = nengo.Network(label="test_none", seed=89234)
 
+    # This function will fail, because at build time it will be
+    # detected as producing output (func is called with 0 input)
+    # but during the run it will produce None when t >=0.5
     def input_function(t):
-        if 0.1 < t < 1:
+        if t < 0.5:
             return [1]
-        #  oops, didn't handle cases outside this range
 
     with model:
         u = nengo.Node(output=input_function)
@@ -197,6 +200,19 @@ def test_none(Simulator, nl_nodirect):
     sim = nengo.Simulator(model)
     with pytest.raises(ValueError):
         sim.run(1.)
+
+    # This function will pass (with a warning), because it will
+    # be determined at run time that the output function
+    # returns None
+    def none_function(t):
+        pass
+
+    model2 = nengo.Network()
+    with model2:
+        nengo.Node(output=none_function)
+
+    sim = nengo.Simulator(model2)
+    sim.run(1)
 
 
 def test_scalar(Simulator):
