@@ -48,19 +48,21 @@ def test_exception():
             self.buffer = spa.Buffer(dimensions=12)
 
     with pytest.raises(Exception):
-        model = Basic()
+        Basic()
 
     class Basic(spa.SPA):
         def __init__(self):
             spa.SPA.__init__(self)
             self.buffer = spa.Buffer(dimensions=12, subdimensions=3)
-    model = Basic()
+    Basic()
+
 
 def test_run():
     class Basic(spa.SPA):
         def __init__(self):
             spa.SPA.__init__(self)
             self.buffer = spa.Buffer(dimensions=32)
+
             def input(t):
                 if 0 <= t < 0.2:
                     return 'A'
@@ -68,6 +70,7 @@ def test_run():
                     return 'B'
                 else:
                     return '0'
+
             self.input = spa.Input(buffer=input)
     model = Basic()
 
@@ -80,12 +83,12 @@ def test_run():
     sim.run(0.5)
 
     data = np.dot(sim.data[p], vocab.vectors.T)
-    assert data[200,0] > 0.9
-    assert data[200,1] < 0.2
-    assert data[400,0] < 0.2
-    assert data[400,1] > 0.9
-    assert data[499,0] < 0.2
-    assert data[499,1] < 0.2
+    assert data[200, 0] > 0.9
+    assert data[200, 1] < 0.2
+    assert data[400, 0] < 0.2
+    assert data[400, 1] > 0.9
+    assert data[499, 0] < 0.2
+    assert data[499, 1] < 0.2
 
 
 if __name__ == '__main__':

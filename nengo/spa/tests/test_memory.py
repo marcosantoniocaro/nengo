@@ -48,13 +48,13 @@ def test_exception():
             self.memory = spa.Memory(dimensions=12)
 
     with pytest.raises(Exception):
-        model = Basic()
+        Basic()
 
     class Basic(spa.SPA):
         def __init__(self):
             spa.SPA.__init__(self)
             self.memory = spa.Memory(dimensions=12, subdimensions=3)
-    model = Basic()
+    Basic()
 
 
 def test_run():

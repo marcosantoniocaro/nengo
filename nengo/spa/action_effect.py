@@ -76,7 +76,7 @@ class CombinedSource(object):
 
     def __str__(self):
         return '((%s) * (%s)) * %s' % (self.source1, self.source2,
-                                   self.transform)
+                                       self.transform)
 
 
 class VectorList(object):

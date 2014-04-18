@@ -81,13 +81,13 @@ def test_text():
     assert v.text([0]*64) == '0.00F'
     assert v.text(v['D'].v) == '1.00D'
 
+
 def test_capital():
     v = Vocabulary(16)
     with pytest.raises(KeyError):
         v.parse('a')
     with pytest.raises(KeyError):
         v.parse('A+B+C+a')
-
 
 
 def test_transform():

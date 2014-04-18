@@ -220,9 +220,9 @@ class Thalamus(Module):
         with self:
             channel = nengo.networks.CircularConvolution(
                 nengo.LIF(self.neurons_cconv), s1_vocab.dimensions,
-                invert_a = False,  #TODO: handle ~ for Source objects
-                invert_b = False,
-                label='cconv_%d_%s'%(index, str(effect)))
+                invert_a=False,  # TODO: handle ~ for Source objects
+                invert_b=False,
+                label='cconv_%d_%s' % (index, str(effect)))
 
             # inhibit the channel when the action is not chosen
             inhibit = [[-1]]*(self.neurons_cconv)
