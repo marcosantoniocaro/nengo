@@ -202,7 +202,6 @@ class Vocabulary(object):
         if isinstance(value, (int, float)):
             value = value * self.identity
         if not isinstance(value, pointer.SemanticPointer):
-            print value
             raise TypeError('The result of "%s" was not a SemanticPointer' %
                             text)
         return value
