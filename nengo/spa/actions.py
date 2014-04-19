@@ -48,8 +48,8 @@ class Action(object):
                                 (name, sink_name))
 
     def __str__(self):
-        return '<Action %s:\n  Condition: %s\n  Effect: %s\n>' % (self.name,
-               self.condition, self.effect)
+        return '<Action %s:\n  %s\n --> %s\n>' % (self.name, self.condition,
+                                                  self.effect)
 
 
 class Actions(object):
