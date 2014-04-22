@@ -1,4 +1,5 @@
-"""A customizable configuration system for setting backend-specific info.
+"""A customizable configuration system for setting default parameters and
+backend-specific info.
 
 The idea here is that a backend can subclass Config and ConfigItem to
 define the set of parameters that their backend supports. Parameters
@@ -63,8 +64,7 @@ class ConfigItem(object):
     def __getattribute__(self, key):
         val = super(ConfigItem, self).__getattribute__(key)
         if val is Default:
-            raise AttributeError("No value set for config parameter '%s'"
-                                 % key)
+            raise AttributeError("No value for config parameter '%s'" % key)
         return val
 
     def __str__(self):
@@ -76,11 +76,7 @@ class ConfigItem(object):
 
 
 class Config(object):
-    """Base class for backends to define their own Config.
-
-    Subclasses are expected to set a class variable config_items
-    to be a list of ConfigItem subclasses, each decorated with a
-    @configures to indicate what nengo class these parameters are for.
+    """A class containing a set of ConfigItems.
 
     Example
     -------
@@ -89,11 +85,10 @@ class Config(object):
     class TestConfigConnection(nengo.config.ConfigItem):
         my_param = nengo.config.Parameter(None)
 
-    class TestConfig(nengo.config.Config):
-        config_items = [TestConfigConnection]
+    my_config = Config([TestConfigConnection])
     """
 
-    context = collections.deque(maxlen=100)  # static stack of Network objects
+    context = collections.deque(maxlen=100)  # static stack of Config objects
 
     def __init__(self, config_items=[]):
         self.items = {}

@@ -1,6 +1,5 @@
 import pytest
 
-import nengo
 import nengo.config
 
 
