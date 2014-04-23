@@ -255,6 +255,41 @@ def test_signaldict():
         assert "%s %s" % (repr(k), repr(signaldict[k])) in str(signaldict)
 
 
+def test_signaldict_readonly():
+    """Tests simulator.SignalDict with readonly items."""
+    signaldict = nengo.simulator.SignalDict()
+
+    writeable = Signal([[1], [1]])
+    signaldict.init(writeable, writeable.value)
+    signaldict[writeable] = np.array([[0], [0]])
+    assert np.allclose(signaldict[writeable], np.array([[0], [0]]))
+    signaldict[writeable][...] = np.array([[-1], [-1]])
+    assert np.allclose(signaldict[writeable], np.array([[-1], [-1]]))
+
+    writeable_view = writeable[0, :]
+    signaldict[writeable_view] = np.array([-2])
+    assert np.allclose(signaldict[writeable_view], np.array([-2]))
+    signaldict[writeable_view][...] = np.array([2])
+    assert np.allclose(signaldict[writeable_view], np.array([2]))
+
+    readonly = Signal([[1], [1]])
+    signaldict.init(readonly, readonly.value, readonly=True)
+    with pytest.raises(ValueError):
+        signaldict[readonly] = np.array([[0], [0]])
+    assert np.allclose(signaldict[readonly], np.array([[1], [1]]))
+    with pytest.raises(ValueError):
+        signaldict[readonly][...] = np.array([[-1], [-1]])
+    assert np.allclose(signaldict[readonly], np.array([[1], [1]]))
+
+    readonly_view = readonly[0, :]
+    with pytest.raises(ValueError):
+        signaldict[readonly_view] = np.array([-2])
+    assert np.allclose(signaldict[readonly_view], np.array([1]))
+    with pytest.raises(ValueError):
+        signaldict[readonly_view][...] = np.array([2])
+    assert np.allclose(signaldict[readonly_view], np.array([1]))
+
+
 def test_probedict():
     """Tests simulator.ProbeDict's implementation."""
     raw = {"scalar": 5,
