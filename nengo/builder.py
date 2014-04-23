@@ -608,6 +608,22 @@ class SimNeurons(Operator):
         return step
 
 
+class SimLIF(SimNeurons):
+    pass
+
+
+class SimLIFRate(SimNeurons):
+    pass
+
+
+class SimALIF(SimNeurons):
+    pass
+
+
+class SimALIFRate(SimNeurons):
+    pass
+
+
 class Model(object):
     """Output of the Builder, used by the Simulator."""
 
@@ -1066,8 +1082,10 @@ def build_neurons(neurons, max_rates, intercepts, model):
 
 def build_lifrate(lif, max_rates, intercepts, model):
     build_neurons(lif, max_rates, intercepts, model=model)
-    model.operators.append(SimNeurons(
-        neurons=lif, J=model.sig_in[lif], output=model.sig_out[lif]))
+    model.operators.append(SimLIFRate(
+        neurons=lif,
+        J=model.sig_in[lif],
+        output=model.sig_out[lif]))
 
 Builder.register_builder(build_lifrate, nengo.neurons.LIFRate)
 
@@ -1077,10 +1095,11 @@ def build_lif(lif, max_rates, intercepts, model):
     voltage = Signal(np.zeros(lif.n_neurons), name="%s.voltage" % lif.label)
     refractory_time = Signal(
         np.zeros(lif.n_neurons), name="%s.refractory_time" % lif.label)
-    model.operators.append(SimNeurons(neurons=lif,
-                                      J=model.sig_in[lif],
-                                      output=model.sig_out[lif],
-                                      states=[voltage, refractory_time]))
+    model.operators.append(SimLIF(
+        neurons=lif,
+        J=model.sig_in[lif],
+        output=model.sig_out[lif],
+        states=[voltage, refractory_time]))
 
 Builder.register_builder(build_lif, nengo.neurons.LIF)
 
@@ -1089,10 +1108,11 @@ def build_alifrate(alif, max_rates, intercepts, model):
     build_neurons(alif, max_rates, intercepts, model=model)
     adaptation = Signal(np.zeros(alif.n_neurons),
                         name="%s.adaptation" % alif.label)
-    model.operators.append(SimNeurons(neurons=alif,
-                                      J=model.sig_in[alif],
-                                      output=model.sig_out[alif],
-                                      states=[adaptation]))
+    model.operators.append(SimALIFRate(
+        neurons=alif,
+        J=model.sig_in[alif],
+        output=model.sig_out[alif],
+        states=[adaptation]))
 
 Builder.register_builder(build_alifrate, nengo.neurons.AdaptiveLIFRate)
 
@@ -1104,7 +1124,7 @@ def build_alif(alif, max_rates, intercepts, model):
                              name="%s.refractory_time" % alif.label)
     adaptation = Signal(np.zeros(alif.n_neurons),
                         name="%s.adaptation" % alif.label)
-    model.operators.append(SimNeurons(
+    model.operators.append(SimALIF(
         neurons=alif,
         J=model.sig_in[alif],
         output=model.sig_out[alif],
