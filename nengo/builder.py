@@ -1227,7 +1227,10 @@ class Builder(object):
 
     @builds(nengo.objects.PES)
     def build_pes(self, pes, conn):
-        pre_filtered = self.model.sig_out[conn.pre]  # TODO: Is this filtered?
+        pre_activities = self.model.sig_out[conn.pre]
+        # TODO: Is this double filtering?
+        pre_filtered = self.filtered_signal(pre_activities, pes.filter)
+
         error = self.model.sig_out[pes.error_connection]
         scaled_error = Signal(np.zeros(error.shape), name="PES:scaled_error")
         shaped_scaled_error = SignalView(scaled_error, (error.size, 1), (1, 1),

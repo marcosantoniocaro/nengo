@@ -95,7 +95,7 @@ class Vocabulary(object):
             try:
                 ortho = orthonormal(UniformHypersphere(
                     dimensions, surface=True).sample(dimensions))
-                self._zero_dots = list(ortho) + list(-ortho)
+                self._zero_dots = list(ortho) # + list(-ortho)
                 random.shuffle(self._zero_dots)
             except ImportError:
                 logger.warning("Could not import scipy. Falling back to "

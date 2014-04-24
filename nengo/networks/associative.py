@@ -86,8 +86,6 @@ class AutoAssociative(nengo.Network):
         Number of neurons to use in the error ensemble. Defaults to 200.
     voja_learning_rate : float, optional
         Learning rate for Voja's rule. Defaults to 1e-2.
-    voja_filter : float, optional
-        Post-synaptic filter for Voja's rule. Defaults to 0.005.
     pes_learning_rate : float, optional
         Learning rate for the PES rule. Defaults to 1e-4. Determines how
         quickly the netork will associate a value with the given key.
@@ -96,14 +94,8 @@ class AutoAssociative(nengo.Network):
         of the encoders. Defaults to 0.05.
     n_dopamine : int, optional
         Number of neurons to use in the dopamine ensembles. Defaluts to 50.
-        Lower values prevent the learning signal from being consistently
-        transmitted when dopamine_filter is small.
     dopamine_strength : float, optional
         Strength of inhibitory signals in dopamine ensembles. Defaults to 20.
-    dopamine_filter : float, optional
-        Post-synaptic filter for connections from dopamine ensembles. Defaults
-        to 0.001. Lower values make changes to the learning input propagate
-        more instantly to the learning rules.
     dopamine_intercepts : Distribution, optional
         Distribution of intercepts for dopamine ensembles. Defaults to
         Uniform(0.1, 1), which ensures that the neurons do not fire when
@@ -138,8 +130,7 @@ class AutoAssociative(nengo.Network):
         value), and to 1 when you want learning to be on (to store
         associations). Note: Accuracy may be slightly better if you can shut
         off learning a couple ms before lookup begins (not simultaneously),
-        especially if the pes_learning_rate is high. A small dopamine_filter
-        helps make these changes more instantaneous.
+        especially if the pes_learning_rate is high.
     intercept : float
         The intercept used for all of the encoders in order to make
         (neurons.n_neurons / max_capacity) of them respond to any randomly
@@ -169,11 +160,17 @@ class AutoAssociative(nengo.Network):
         (learn has_key).
     """
 
-    def __init__(self, neurons, max_capacity, d_key=None, d_value=None,
+    pstc_dopamine = 0.02557
+    pstc_gaba = 0.0012
+    pstc_ampa = 0.0022
+    tau_rc_stratum_interneuron = 0.0058
+    tau_rc_ca1_pyramidal = 0.0106
+
+    def __init__(self, n_neurons, max_capacity, d_key=None, d_value=None,
                  initial_keys=None, initial_values=None, default_value=None,
-                 n_error=200, voja_learning_rate=1e-2, voja_filter=0.005,
+                 n_error=200, voja_learning_rate=1e-2,
                  pes_learning_rate=1e-4, intercept_spread=0.05,
-                 n_dopamine=50, dopamine_strength=20, dopamine_filter=0.001,
+                 n_dopamine=50, dopamine_strength=20,
                  dopamine_intercepts=Uniform(0.1, 1), use_all_encoders=False,
                  voja_disable=False):
         if max_capacity <= 0:
@@ -228,8 +225,9 @@ class AutoAssociative(nengo.Network):
             nengo.LIF(n_dopamine), 1, intercepts=dopamine_intercepts,
             encoders=[[1]]*n_dopamine, label="dopamine")
         self.nopamine = nengo.Ensemble(
-            nengo.LIF(n_dopamine), 1, intercepts=dopamine_intercepts,
-            encoders=[[1]]*n_dopamine, label="nopamine")
+            nengo.LIF(n_dopamine, tau_rc=self.tau_rc_stratum_interneuron), 1, intercepts=dopamine_intercepts,
+            encoders=[[1]]*n_dopamine,
+            label="nopamine")
 
         # Create ensemble which acts as the dictionary. The encoders will
         # shift towards the keys with Voja's rule, and the decoders will
@@ -237,54 +235,55 @@ class AutoAssociative(nengo.Network):
         # (neurons.n_neurons / max_capacity) neurons fire for a random x.
         self.intercept = self._calculate_intercept(
             d_key, 1 / float(max_capacity))
-        encoders, value_function, has_key_function = self._initial_memory(
-            neurons.n_neurons, d_key,
-            initial_keys, initial_values, default_value, self.intercept,
-            use_all_encoders)
         intercepts = Uniform(
             self.intercept - intercept_spread,
-            min(self.intercept + intercept_spread, 1.0))
+            min(self.intercept + intercept_spread, 1.0)).sample(n_neurons)
+        encoders, value_function, has_key_function = self._initial_memory(
+            n_neurons, d_key, initial_keys, initial_values, default_value,
+            intercepts, use_all_encoders)
         self.memory = nengo.Ensemble(
-            neurons, d_key, encoders=encoders, intercepts=intercepts,
-            label="memory")
+            nengo.LIF(n_neurons, tau_rc=self.tau_rc_ca1_pyramidal), d_key,
+            encoders=encoders, intercepts=intercepts, label="memory")
 
         # Create the ensembles for calculating error * learning
         self.value_error = nengo.Ensemble(
-            nengo.LIF(n_error), d_value, label="value_error")
+            nengo.LIF(n_error, tau_rc=self.tau_rc_ca1_pyramidal), d_value, label="value_error")
         self.has_key_error = nengo.Ensemble(
-            nengo.LIF(n_error), 1, label="has_key_error")
+            nengo.LIF(n_error, tau_rc=self.tau_rc_ca1_pyramidal), 1, label="has_key_error")
 
         # Connect the memory Ensemble to the output Node with PES(value_error)
         # and the has_key node with PES(has_key_error)
         # Use the values "assigned" to each encoder as the evaluation points
         self.value_pes = nengo.PES(
-            self.value_error, learning_rate=pes_learning_rate,
+            self.value_error, filter=self.pstc_ampa, learning_rate=pes_learning_rate,
+            error_filter=self.pstc_ampa,
             label="learn_value")
         nengo.Connection(
-            self.memory, self.output, eval_points=encoders, #filter=None,
+            self.memory, self.output, eval_points=encoders, filter=None,
             function=value_function, learning_rule=self.value_pes)
         self.has_key_pes = nengo.PES(
-            self.has_key_error, learning_rate=pes_learning_rate,
+            self.has_key_error, filter=self.pstc_ampa, learning_rate=pes_learning_rate,
+            error_filter=self.pstc_ampa,
             label="learn_has_key")
         nengo.Connection(
-            self.memory, self.has_key, eval_points=encoders, #filter=None,
+            self.memory, self.has_key, eval_points=encoders, filter=None,
             function=has_key_function, learning_rule=self.has_key_pes)
 
         # Connect the learning signal to the error populations
         nengo.Connection(self.learning, self.dopamine, filter=None)
         nengo.Connection(nengo.Node(output=[1], label="bias"), self.nopamine)
         self._inhibit(self.dopamine, self.nopamine,
-                      amount=dopamine_strength, filter=dopamine_filter)
+                      amount=dopamine_strength, filter=self.pstc_dopamine)
         self._inhibit(self.nopamine, self.value_error,
-                      amount=dopamine_strength, filter=dopamine_filter)
+                      amount=dopamine_strength, filter=self.pstc_gaba)
         self._inhibit(self.nopamine, self.has_key_error,
-                      amount=dopamine_strength, filter=dopamine_filter)
+                      amount=dopamine_strength, filter=self.pstc_gaba)
 
         # Connect the key Node to the memory Ensemble with voja's rule
-        self.voja = (nengo.Voja(filter=voja_filter,
+        self.voja = (nengo.Voja(filter=self.pstc_ampa,
                                 learning_rate=voja_learning_rate,
                                 learning=self.dopamine,
-                                learning_filter=dopamine_filter,
+                                learning_filter=self.pstc_dopamine,
                                 label="learn_key")
                      if not voja_disable else None)
         nengo.Connection(
@@ -293,14 +292,14 @@ class AutoAssociative(nengo.Network):
         # Compute the value_error and has_key_error
         nengo.Connection(self.value, self.value_error, filter=None)
         nengo.Connection(
-            self.output, self.value_error, transform=-1)
+            self.output, self.value_error, transform=-1, filter=self.pstc_ampa)
         nengo.Connection(nengo.Node(output=[1]), self.has_key_error)
         nengo.Connection(
-            self.has_key, self.has_key_error, transform=-1)
+            self.has_key, self.has_key_error, transform=-1, filter=self.pstc_ampa)
 
     @classmethod
     def _initial_memory(cls, n, d_key, initial_keys, initial_values,
-                        default_value, intercept, use_all_encoders):
+                        default_value, intercepts, use_all_encoders):
         """Returns the initial encoders and functions to decode."""
         if use_all_encoders:
             if not len(initial_keys):
@@ -308,21 +307,25 @@ class AutoAssociative(nengo.Network):
             encoders = np.tile(initial_keys, (n/len(initial_keys) + 1, 1))[:n]
         else:
             encoders = UniformHypersphere(d_key, surface=True).sample(n)
-        # Find the first key which stimulates an encoder, for each encoder
         encoder_to_value = dict()
         encoder_to_has_key = dict()
-        for e in encoders:
-            for key, value in reversed(zip(initial_keys, initial_values)):
+        for e, intercept in zip(encoders, intercepts):
+            # Use the default value for this encoder if it's not close to
+            # any of the initial keys
+            final_value = default_value
+            final_has_key = 0
+            # Note: This can be optimized by precomputing the chains of
+            # dot products >= intercept between successive keys.
+            for key, value in zip(initial_keys, initial_values):
                 if np.dot(e, key) >= intercept:
+                    if final_has_key == 1:
+                        logger.warning("Two of the initial keys are more "
+                                       "similar than the chosen intercept.")
                     e[...] = key
-                    encoder_to_value[tuple(e)] = value  # since e is mutable
-                    encoder_to_has_key[tuple(e)] = 1
-                    break
-            else:
-                # Use the default value for this encoder if it's not close to
-                # any of the initial keys
-                encoder_to_value[tuple(e)] = default_value
-                encoder_to_has_key[tuple(e)] = 0
+                    final_value = value  # since e is mutable
+                    final_has_key = 1
+            encoder_to_value[tuple(e)] = final_value
+            encoder_to_has_key[tuple(e)] = final_has_key
         return (encoders,
                 lambda e: encoder_to_value[tuple(e)],
                 lambda e: encoder_to_has_key[tuple(e)])
@@ -383,10 +386,10 @@ class HeteroAssociative(AutoAssociative):
     the keys.
     """
 
-    def __init__(self, neurons, max_capacity, d_key=None, initial_keys=None,
+    def __init__(self, n_neurons, max_capacity, d_key=None, initial_keys=None,
                  **kwargs):
         super(HeteroAssociative, self).__init__(
-            neurons, max_capacity, d_key, d_key, initial_keys, initial_keys,
+            n_neurons, max_capacity, d_key, d_key, initial_keys, initial_keys,
             **kwargs)
         assert self.d_key == self.d_value
         self.dimension = self.d_key

@@ -756,9 +756,13 @@ class PES(LearningRule):
         The Node, Ensemble, or Neurons providing the error signal. Must be
         connectable to the post-synaptic object that is being used for this
         learning rule.
+    filter : float, optional
+        Filter to apply to the post-synaptic activity. Defaults to 0.001.
     learning_rate : float, optional
         A scalar indicating the rate at which decoders will be adjusted.
         Defaults to 1e-5.
+    error_filter : float, optional
+        Filter to use for modulatory error connection. Defaults to 0.005
     label : string, optional
         A name for the learning rule. Defaults to None.
 
@@ -768,21 +772,25 @@ class PES(LearningRule):
         The given label.
     error : NengoObject
         The given error Node, Ensemble, or Neurons.
+    filter : float
+        The given filter.
     learning_rate : float
         The given learning rate.
     error_connection : Connection
         The modulatory connection created to project the error signal.
     """
 
-    def __init__(self, error, learning_rate=1e-5, label=None):
+    def __init__(self, error, filter=0.001, learning_rate=1e-5,
+                 error_filter=0.005, label=None):
         self.error = error
+        self.filter = filter
         self.learning_rate = learning_rate
 
         # TODO: With modulatory connections, the 'post' doesn't matter as long
         # as it has compatible dimensions with the pre, because the builder
         # detaches the connection from the post.
         self.error_connection = Connection(
-            self.error, self.error, modulatory=True)
+            self.error, self.error, filter=error_filter, modulatory=True)
 
         super(PES, self).__init__(label)
 
@@ -815,8 +823,6 @@ class Voja(LearningRule):
         The given filter.
     learning_rate : float
         The given learning rate.
-    learning_filter : float
-        The given learning_filter.
     learning_connection : Connection
         The modulatory connection created to project the learning scalar,
         or None if learning was None.
