@@ -156,11 +156,13 @@ def _create_replacement_connection(c_in, c_out):
     if np.all(transform == 0):
         return None
 
-    with nengo.Network():  # dummy model so connections don't get added
-        args = {}
-        if function is not None:
-            args['function'] = function
-        c = nengo.Connection(c_in.pre, c_out.post,
-                             synapse=synapse,
-                             transform=transform, **args)
+    args = {}
+    if function is not None:
+        args['function'] = function
+
+    c = nengo.Connection(c_in.pre, c_out.post,
+                         synapse=synapse,
+                         transform=transform,
+                         add_to_container=False,
+                         **args)
     return c
