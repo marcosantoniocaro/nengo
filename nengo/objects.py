@@ -407,11 +407,12 @@ class Node(NengoObject):
                 args = [t, x] if size_in > 0 else [t]
                 try:
                     result = output(*args)
-                except TypeError:
+                except TypeError, te:
                     raise TypeError(
-                        "The function '%s' provided to '%s' takes %d "
+                        "%s\nThe function '%s' provided to '%s' takes %d "
                         "argument(s), where a function for this type "
                         "of node is expected to take %d argument(s)" % (
+                            te,
                             output.__name__, self,
                             output.__code__.co_argcount, len(args)))
 
@@ -563,7 +564,7 @@ class Connection(NengoObject):
         if transform.ndim == 0:
             # following assertion should be guaranteed by _check_transform
             assert pre_sliced_size == post_sliced_size
-            transform = transform*np.eye(pre_sliced_size)
+            transform = transform * np.eye(pre_sliced_size)
 
         # Create the new transform matching the pre/post dimensions
         new_transform = np.zeros((out_dims, in_dims))
@@ -780,5 +781,5 @@ class ObjView(object):
         if isinstance(key, int):
             # single slices of the form [i] should be cast into
             # slice objects for convenience
-            key = slice(key, key+1)
+            key = slice(key, key + 1)
         self.slice = key
