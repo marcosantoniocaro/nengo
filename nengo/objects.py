@@ -119,6 +119,7 @@ class Network(with_metaclass(NengoObjectContainer)):
         inst.nodes = inst.objects[Node]
         inst.connections = inst.objects[Connection]
         inst.networks = inst.objects[Network]
+        inst.order = []
         return inst
 
     context = collections.deque(maxlen=100)  # static stack of Network objects
@@ -139,6 +140,7 @@ class Network(with_metaclass(NengoObjectContainer)):
         for cls in obj.__class__.__mro__:
             if cls in network.objects:
                 network.objects[cls].append(obj)
+                network.order.append(obj)
                 break
         else:
             raise TypeError("Objects of type '%s' cannot be added to "
@@ -487,10 +489,15 @@ class Connection(NengoObject):
     weight_solver : callable
         Function to compute a full connection weight matrix. Similar to
         `decoder_solver`, but more general. See `nengo.decoders`.
+    modulatory : bool
+        Whether the output of this signal is to act as an error signal for a
+        learning rule.
+    seed : int
+        The seed used for random number generation.
     """
 
     def __init__(self, pre, post, synapse=0.005, transform=1.0,
-                 modulatory=False, **kwargs):
+                 modulatory=False, seed=None, **kwargs):
         if not isinstance(pre, ObjView):
             pre = ObjView(pre)
         if not isinstance(post, ObjView):
@@ -503,6 +510,7 @@ class Connection(NengoObject):
 
         self.synapse = synapse
         self.modulatory = modulatory
+        self.seed = seed
 
         # don't check shapes until we've set all parameters
         self._skip_check_shapes = True

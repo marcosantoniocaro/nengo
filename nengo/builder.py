@@ -613,8 +613,11 @@ class Model(object):
 
     def __init__(self, dt=0.001, label=None, seed=None):
         # Resources used by the build process.
+        self.toplevel = None
+
         self.operators = []
         self.params = {}
+        self.seeds = {}
         self.probes = []
         self.sig_in = {}
         self.sig_out = {}
@@ -623,8 +626,6 @@ class Model(object):
         self.label = label
         self.seed = np.random.randint(npext.maxint) if seed is None else seed
 
-        self.rng = np.random.RandomState(self.seed)
-
     def __str__(self):
         return "Model: %s" % self.label
 
@@ -632,10 +633,53 @@ class Model(object):
         """Returns true iff obj has been processed by build."""
         return obj in self.params
 
-    def next_seed(self):
-        """Yields a seed to use for RNG during build computations."""
-        return self.rng.randint(npext.maxint)
+    def assign_seeds(self, network):
+        """Helper function for recursively assigning seeds, depth first"""
+        self._assign_seeds(network, True)
 
+    def _assign_seeds(self, network, toplevel):
+        """
+        Recursively assign seeds.
+        Depth first, using order of object creation.
+        """
+        seed = self.seed if toplevel else self.seeds[network]
+        rng = np.random.RandomState(seed)
+
+        for obj in network.order:
+
+            self.seeds[obj] = rng.randint(npext.maxint)
+
+            if hasattr(obj, 'seed') and isinstance(obj.seed, (int, long)):
+                self.seeds[obj] = obj.seed
+
+            if isinstance(obj, nengo.Network):
+                self._assign_seeds(obj, False)
+
+    # def next_seed(self):
+    #    """Yields a seed to use for RNG during build computations."""
+    #    seed = self.seed
+
+    #    if self.rng_stack:
+
+    #    return seed
+
+    # def push_seed(self):
+    #    """
+    #    Supports hierarchical seeding. Normally called by networks at the
+    #    beginning of build_network.
+    #    """
+    #    seed = self.next_seed()
+    #    self.rng_stack.append(
+
+    # def pop_seed(self):
+    #    """
+    #    Supports hierarchical seeding. Normally called by networks at the
+    #    end of build_network.
+    #    """
+    #    if len(self.rng_stack) > 0:
+    #        self.rng_stack.pop()
+    #    else:
+    #        raise Exception("Model seed popped too many times.")
 
 BuiltConnection = collections.namedtuple(
     'BuiltConnection', ['decoders', 'eval_points', 'transform', 'solver_info'])
@@ -692,6 +736,11 @@ def build_network(network, model):
     2) Subnetworks (recursively)
     3) Connections
     """
+
+    if model.toplevel is None:
+        model.toplevel = network
+        model.assign_seeds(network)
+
     logger.info("Network step 1: Building ensembles and nodes")
     for obj in network.ensembles + network.nodes:
         Builder.build(obj, model=model)
@@ -719,8 +768,7 @@ def pick_eval_points(ens, n_points, rng):
 
 def build_ensemble(ens, model):  # noqa: C901
     # Create random number generator
-    seed = model.next_seed() if ens.seed is None else ens.seed
-    rng = np.random.RandomState(seed)
+    rng = np.random.RandomState(model.seeds[ens])
 
     # Generate eval points
     if ens.eval_points is None or is_integer(ens.eval_points):
@@ -871,7 +919,8 @@ def filtered_signal(signal, pstc, model):
 
 
 def build_connection(conn, model):  # noqa: C901
-    rng = np.random.RandomState(model.next_seed())
+    # Create random number generator
+    rng = np.random.RandomState(model.seeds[conn])
 
     model.sig_in[conn] = model.sig_out[conn.pre]
     model.sig_out[conn] = model.sig_in[conn.post]
