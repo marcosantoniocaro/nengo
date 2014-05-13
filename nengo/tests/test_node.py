@@ -166,6 +166,8 @@ def test_function_args_error(Simulator):
             nengo.Node(output=lambda t: t+1, size_in=1)
         with pytest.raises(TypeError):
             nengo.Node(output=lambda t, x, y: t+1, size_in=2)
+        with pytest.raises(TypeError):
+            nengo.Node(output=[0], size_in=1)
 
 
 def test_output_shape_error(Simulator):

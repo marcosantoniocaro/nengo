@@ -392,7 +392,7 @@ class Node(NengoObject):
         The number of output dimensions.
     """
 
-    def __init__(self, output=None, size_in=0, size_out=None, label="Node"):
+    def __init__(self, output=None, size_in=0, size_out=None, label="Node"):  # noqa: C901
         if output is not None and not is_callable(output):
             output = npext.array(output, min_dims=1, copy=False)
         self.output = output
@@ -401,20 +401,20 @@ class Node(NengoObject):
 
         if output is not None:
             if isinstance(output, np.ndarray):
+                if size_in != 0:
+                    raise TypeError("output must be callable if size_in != 0")
                 shape_out = output.shape
             elif size_out is None and is_callable(output):
                 t, x = np.asarray(0.0), np.zeros(size_in)
                 args = [t, x] if size_in > 0 else [t]
-                try:
-                    result = output(*args)
-                except TypeError:
+                if output.__code__.co_argcount != len(args):
                     raise TypeError(
                         "The function '%s' provided to '%s' takes %d "
                         "argument(s), where a function for this type "
                         "of node is expected to take %d argument(s)" % (
                             output.__name__, self,
                             output.__code__.co_argcount, len(args)))
-
+                result = output(*args)
                 shape_out = (0,) if result is None \
                     else np.asarray(result).shape
             else:
