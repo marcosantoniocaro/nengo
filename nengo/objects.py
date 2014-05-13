@@ -400,9 +400,9 @@ class Node(NengoObject):
         self.size_in = size_in
 
         if output is not None:
+            if size_in != 0 and not is_callable(output):
+                raise TypeError("output must be callable if size_in != 0")
             if isinstance(output, np.ndarray):
-                if size_in != 0:
-                    raise TypeError("output must be callable if size_in != 0")
                 shape_out = output.shape
             elif size_out is None and is_callable(output):
                 t, x = np.asarray(0.0), np.zeros(size_in)
